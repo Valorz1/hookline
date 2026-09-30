@@ -1,0 +1,18 @@
+From: "Tailspin Airlines" <bookings@tailspinair.com>
+To: Lucy <lucy@hookline-test.example>
+Subject: Booking confirmed: WSPWRS
+Date: Sun, 13 Sep 2026 04:28:00 +0000
+Message-ID: <179080486728.38724.11907387847079093244@tailspinair.com>
+Authentication-Results:
+ mx.hookline-test.example; spf=pass smtp.mailfrom=tailspinair.com; dkim=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Dear Lucy,
+
+Your booking WSPWRS is confirmed.
+
+Manage your booking: https://tailspinair.com/manage/WSPWRS
+
+Tailspin Airlines

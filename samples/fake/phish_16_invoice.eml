@@ -1,0 +1,30 @@
+From: "Accounts Department" <accounts@litware-billing-34.biz>
+To: Omar <omar@hookline-test.example>
+Subject: Overdue invoice #3340
+Date: Sat, 05 Sep 2026 08:25:00 +0000
+Message-ID: <179080486724.38724.10355414347130837273@litware-billing-34.biz>
+Authentication-Results: mx.hookline-test.example; spf=none
+ smtp.mailfrom=litware-billing-34.biz; dkim=none
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============2423363616078719592=="
+
+--===============2423363616078719592==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hello,
+
+Please find attached overdue invoice #3340. Payment is required today to avoi=
+d late charges.
+
+Accounts
+
+--===============2423363616078719592==
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Invoice_3340.pdf.exe"
+MIME-Version: 1.0
+
+SG9va0xpbmUgdGVzdCBmaWxlIC0gaGFybWxlc3MgcGxhY2Vob2xkZXIu
+
+--===============2423363616078719592==--

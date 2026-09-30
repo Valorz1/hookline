@@ -1,0 +1,19 @@
+From: "Tailspin Rewards" <rewards@tailspin-prizes.win>
+To: Dan <dan@hookline-test.example>
+Subject: Congratulations! You have won 2 free flights
+Date: Tue, 29 Sep 2026 19:55:00 +0000
+Message-ID: <179080486724.38724.6677655823134432407@tailspin-prizes.win>
+Authentication-Results: mx.hookline-test.example; spf=softfail
+ smtp.mailfrom=tailspin-prizes.win; dkim=none
+Reply-To: claims.office64@freemail.example
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Dear Dan,
+
+You have been selected to win two return flights!
+
+To claim, reply with your full name, address and date of birth.
+
+Tailspin Rewards

@@ -1,0 +1,23 @@
+From: "Woodgrove Bank Security" <alerts@woodgrovebank-secure-login.com>
+To: Dan <dan@hookline-test.example>
+Subject: Action required: verify your account
+Date: Fri, 18 Sep 2026 04:15:00 +0000
+Message-ID:
+ <179080486722.38724.17013346644619304268@woodgrovebank-secure-login.com>
+Authentication-Results: mx.hookline-test.example; spf=fail
+ smtp.mailfrom=woodgrovebank-secure-login.com; dkim=none
+Reply-To: help-desk@account-recovery-68.net
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Dear customer,
+
+We noticed unusual activity on your account and have limited access.
+
+Verify your identity within 24 hours:
+http://woodgrovebank-secure-login.com/verify?id=15695
+
+If you do not verify, your account will be closed.
+
+Woodgrove Bank Security Team

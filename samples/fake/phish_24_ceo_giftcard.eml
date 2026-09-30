@@ -1,0 +1,19 @@
+From: "Sarah Whitfield" <sarah.whitfield.office@freemail.example>
+To: Sam <sam@hookline-test.example>
+Subject: Quick favour
+Date: Mon, 28 Sep 2026 21:20:00 +0000
+Message-ID: <179080486725.38724.15526059072672948392@freemail.example>
+Authentication-Results:
+ mx.hookline-test.example; spf=pass smtp.mailfrom=freemail.example; dkim=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Hi Sam,
+
+Are you at your desk? I need you to buy 5 gift cards (=C2=A3100 each) for a c=
+lient today. Keep this between us for now, it's a surprise. Send me the codes=
+ once you have them.
+
+Sarah Whitfield
+CEO

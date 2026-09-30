@@ -1,0 +1,18 @@
+From: "Fabrikam Store" <orders@fabrikam.com>
+To: Jordan <jordan@hookline-test.example>
+Subject: Order #520521 confirmed
+Date: Sun, 13 Sep 2026 00:04:00 +0000
+Message-ID: <179080486727.38724.7202010227992769352@fabrikam.com>
+Authentication-Results:
+ mx.hookline-test.example; spf=pass smtp.mailfrom=fabrikam.com; dkim=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+Hi Jordan,
+
+Thanks for your order #520521. Total: £25.21.
+
+Track it here: https://fabrikam.com/orders/520521
+
+Fabrikam Store

@@ -1,0 +1,18 @@
+From: "Fabrikam Store" <orders@fabrikam.com>
+To: Mei <mei@hookline-test.example>
+Subject: Order #589710 confirmed
+Date: Mon, 21 Sep 2026 22:03:00 +0000
+Message-ID: <179080486727.38724.1118106495833205230@fabrikam.com>
+Authentication-Results:
+ mx.hookline-test.example; spf=pass smtp.mailfrom=fabrikam.com; dkim=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+MIME-Version: 1.0
+
+Hi Mei,
+
+Thanks for your order #589710. Total: £23.86.
+
+Track it here: https://fabrikam.com/orders/589710
+
+Fabrikam Store

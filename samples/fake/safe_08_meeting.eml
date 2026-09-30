@@ -1,0 +1,17 @@
+From: "Priya Shah" <priya.shah@hookline-test.example>
+To: Mei <mei@hookline-test.example>
+Subject: Notes from Wednesday's meeting
+Date: Sat, 26 Sep 2026 03:43:00 +0000
+Message-ID: <179080486727.38724.3534213002786500868@hookline-test.example>
+Authentication-Results: mx.hookline-test.example; spf=pass
+ smtp.mailfrom=hookline-test.example; dkim=pass
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Hi Mei,
+
+Thanks for joining on Wednesday. Notes are in the shared folder as usual. Nex=
+t catch-up is same time next week.
+
+Priya

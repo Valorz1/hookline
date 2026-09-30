@@ -1,0 +1,20 @@
+From: "Fabrikam Parcel" <noreply@fabrikam-delivery-4.top>
+To: Mei <mei@hookline-test.example>
+Subject: Your parcel is on hold - unpaid fee of =?utf-8?q?=C2=A32=2E99?=
+Date: Wed, 23 Sep 2026 02:22:00 +0000
+Message-ID: <179080486723.38724.12198155279199315353@fabrikam-delivery-4.top>
+Authentication-Results: mx.hookline-test.example; spf=softfail
+ smtp.mailfrom=fabrikam-delivery-4.top; dkim=none
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+Hello Mei,
+
+Your parcel #705397 could not be delivered because a customs fee of =C2=A32.9=
+9 is unpaid.
+
+Pay now to rebook delivery:
+http://31.152.86.171/pay?parcel=3D705397
+
+Unpaid parcels are returned after 48 hours.

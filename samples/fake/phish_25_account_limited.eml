@@ -1,0 +1,23 @@
+From: "Northwind Bank Security" <alerts@northwindbank-secure-login.com>
+To: Lucy <lucy@hookline-test.example>
+Subject: Unusual sign-in activity detected
+Date: Fri, 18 Sep 2026 18:06:00 +0000
+Message-ID:
+ <179080486725.38724.10549616149947357@northwindbank-secure-login.com>
+Authentication-Results: mx.hookline-test.example; spf=fail
+ smtp.mailfrom=northwindbank-secure-login.com; dkim=none
+Reply-To: help-desk@account-recovery-30.net
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Dear customer,
+
+We noticed unusual activity on your account and have limited access.
+
+Verify your identity within 24 hours:
+http://northwindbank-secure-login.com/verify?id=30032
+
+If you do not verify, your account will be closed.
+
+Northwind Bank Security Team

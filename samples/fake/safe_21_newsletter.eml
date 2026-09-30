@@ -1,0 +1,33 @@
+From: "Contoso" <news@contoso.com>
+To: Aisha <aisha@hookline-test.example>
+Subject: What's new at Contoso this month
+Date: Tue, 15 Sep 2026 10:47:00 +0000
+Message-ID: <179080486728.38724.13869451822371185979@contoso.com>
+Authentication-Results:
+ mx.hookline-test.example; spf=pass smtp.mailfrom=contoso.com; dkim=pass
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============0669092141356304475=="
+
+--===============0669092141356304475==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Hi Aisha,
+
+Here's our monthly roundup.
+
+Read more: https://contoso.com/blog/september
+
+Unsubscribe: https://contoso.com/unsubscribe
+
+--===============0669092141356304475==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<p>Hi Aisha,</p><p>Here's our monthly roundup.</p><p><a href=3D"https://conto=
+so.com/blog/september">Read more</a></p><p><a href=3D"https://contoso.com/uns=
+ubscribe">Unsubscribe</a></p>
+
+--===============0669092141356304475==--
