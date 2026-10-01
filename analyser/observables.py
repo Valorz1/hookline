@@ -23,7 +23,8 @@ def find_urls(text):
     """Find every link in a piece of text."""
     urls = URL_PATTERN.findall(text)
 # This part is important because phishing emails often have punctuation after the URL, e.g. "Click here: https://example.com."
-    return [url.rstrip(".,;:!?") for url in urls]
+# The ) matters too: in HTML, links often sit inside CSS like url(https://...)
+    return [url.rstrip(".,;:!?)") for url in urls]
 
 
 
@@ -55,8 +56,11 @@ def extract_observables(parsed):
         if is_ip(match):
             ips.add(match)
 
-    # Email addresses from the body and the sender-side headers
-    emails = set(EMAIL_PATTERN.findall(text) + EMAIL_PATTERN.findall(headers))
+    # Email addresses from the body and the sender-side headers.
+    # Remove links first: things like facebook@2x.png inside image URLs
+    # look like email addresses but are really filenames
+    text_without_urls = URL_PATTERN.sub(" ", text + " " + headers)
+    emails = set(EMAIL_PATTERN.findall(text_without_urls))
     for address in emails:
         domains.add(address.split("@")[1].lower())
 

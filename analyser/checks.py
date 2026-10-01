@@ -6,6 +6,18 @@ from analyser.observables import find_urls, is_ip
 # THIS FILE TYPE THAT RUN IN THE CODE WHEN OPENDED
 RISKY_EXTENSIONS = {".exe", ".scr", ".bat", ".cmd", ".com", ".pif", ".js", ".vbs", ".wsf"}
 
+#famous brand and their real domains.
+BRANDS = {
+        "amazon": "amazon.com",
+    "microsoft": "microsoft.com",
+    "paypal": "paypal.com",
+    "apple": "apple.com",
+    "netflix": "netflix.com",
+    "metamask": "metamask.io",
+    "coindesk": "coindesk.com",
+    "binance": "binance.com",
+}
+
 #Phrase phising uses to rush peopel.
 RISKY_PATTERNS = [
     r"\burgent\b", r"\bimmediately\b", r"\bwithin \d+ hours\b", r"\b\d+ hours\b",
@@ -129,9 +141,23 @@ def check_urgency(parsed, found):
     return None
 
 
+def check_brand_mismatch(parsed, found):
+    # A famous brand in the display name, but sent from a domain the brand doesn't own
+    name = parseaddr(str(parsed["from"] or ""))[0].lower()
+    sender = domain_of(parsed["from"]) or ""
+    for brand, real_domain in BRANDS.items():
+        # Real brands often send from a subdomain, like email.amazon.com
+        is_real = sender == real_domain or sender.endswith("." + real_domain)
+        if brand in name and not is_real:
+            return finding("brand_mismatch", 4,
+                           f"Display name says {brand} but the email came from {sender}")
+    return None
+
+
 # Every check in one list, so run_checks() can loop through them
 CHECKS = [check_authentication, check_reply_to, check_ip_links, check_link_text,
-          check_attachments, check_empty_body, check_invisible_chars, check_urgency]
+          check_attachments, check_empty_body, check_invisible_chars, check_urgency,
+          check_brand_mismatch]
 
 
 def run_checks(parsed, found):
