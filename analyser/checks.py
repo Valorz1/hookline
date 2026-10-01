@@ -9,6 +9,14 @@ from analyser.observables import find_urls, is_ip
 RISKY_EXTENSIONS = {".exe", ".scr", ".bat", ".cmd", ".com", ".pif", ".js", ".vbs", ".wsf",
                     ".ps1", ".jar", ".msi", ".iso", ".img", ".hta", ".lnk"}
 
+
+# Services that hide a link's real destination until you click it
+SHORTENERS = {"bit.ly", "t.co", "tinyurl.com", "is.gd", "cutt.ly", "ow.ly",
+              "rebrand.ly", "shorturl.at", "tiny.cc", "rb.gy", "s.id"}
+
+# Four or more single letters separated by spaces, like "C o i n b a s e"
+SPACED_LETTERS = re.compile(r"\b(?:\w ){3,}\w\b")
+
 # Famous brands and their real domains.
 BRANDS = {
     "amazon": "amazon.com",
@@ -175,12 +183,35 @@ def plain_text(text):
     return "".join(ch for ch in text
                    if not unicodedata.combining(ch) and ch not in INVISIBLE_CHARS)
 
+def check_dkim_dmarc(parsed, found):
+    results = str(parsed["auth_results"] or "").lower()
+    if "dmarc=fail" in results:
+        return finding("dmarc_fail", 3,
+                       "DMARC failed: the From domain didn't authorise this email (likely spoofed)")
+    if "dkim=fail" in results:
+        return finding("dkim_fail", 2,
+                       "DKIM failed: the email's digital signature doesn't check out")
+    return None
 
+
+def check_shortened_links(parsed, found):
+    short = [domain for domain in found["domains"] if domain in SHORTENERS]
+    if short:
+        return finding("link_shortener", 2,
+                       f"Links hidden behind a URL shortener ({short[0]})")
+    return None
+
+
+def check_spaced_name(parsed, found):
+    if SPACED_LETTERS.search(str(parsed["from"] or "")):
+        return finding("spaced_name", 3,
+                       "Sender name is spaced out letter by letter to dodge filters")
+    return None
 
 # Every check in one list, so run_checks() can loop through them
 CHECKS = [check_authentication, check_reply_to, check_ip_links, check_link_text,
           check_attachments, check_empty_body, check_invisible_chars, check_urgency,
-          check_brand_mismatch]
+          check_brand_mismatch, check_dkim_dmarc, check_shortened_links, check_spaced_name]
 
 
 def run_checks(parsed, found):

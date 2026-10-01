@@ -1,4 +1,5 @@
 from analyser.checks import finding
+from urllib.parse import urlparse
 
 
 SUSPICIOUS_AT = 2
@@ -10,19 +11,30 @@ MALICIOUS_AT = 6
 VT_CONFIDENT = 5 
 
 
-def vt_findings(vt_result):
+def vt_findings(vt_results):
     """Turn VirusTotal results into findings, in the same shape as the red flags."""
     findings = []
-    for result in vt_result:
+    # Sites we've already counted, so one bad website isn't counted
+    # again for every link that points to it
+    counted = set()
+    for result in vt_results:
         if result["status"] != "found":
             continue  # "never seen" or an error isn't evidence either way
+
+        # For a URL, the "site" is its domain; for anything else it's the value itself
+        site = urlparse(result["value"]).hostname if result["kind"] == "url" else result["value"]
+        if site in counted:
+            continue
+
         what = f"{result['kind']} {result['value'][:60]}"
         if result["malicious"] >= VT_CONFIDENT:
             findings.append(finding("vt_malicious", 6,
                 f"VirusTotal: {result['malicious']} of {result['engines']} engines flag {what}"))
+            counted.add(site)
         elif result["malicious"] or result["suspicious"]:
             findings.append(finding("vt_suspicious", 2,
                 f"VirusTotal: a few engines are wary of {what}"))
+            counted.add(site)
     return findings
 
 def decide(findings):
