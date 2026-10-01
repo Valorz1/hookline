@@ -5,6 +5,15 @@ from urllib.parse import urlparse
 
 from analyser.observables import find_urls, is_ip
 
+# Free personal email services. Real organisations don't send from these.
+FREEMAIL = {"gmail.com", "googlemail.com", "hotmail.com", "outlook.com", "live.com",
+            "yahoo.com", "icloud.com", "aol.com", "gmx.com", "proton.me", "protonmail.com"}
+
+# Words that make a sender name sound like an organisation rather than a person
+ORG_WORDS = re.compile(r"\b(bank|banco|support|security|service|team|account|billing|"
+                       r"helpdesk|admin|customer|cliente|notification|department)\b",
+                       re.IGNORECASE)
+
 # File types that run code when opened. Real documents are never these.
 RISKY_EXTENSIONS = {".exe", ".scr", ".bat", ".cmd", ".com", ".pif", ".js", ".vbs", ".wsf",
                     ".ps1", ".jar", ".msi", ".iso", ".img", ".hta", ".lnk"}
@@ -91,6 +100,24 @@ def check_reply_to(parsed, found):
         return finding("reply_to_mismatch", 3,
                        f"Reply-To domain {reply} doesn't match sender {sender or '(no valid address)'}")
 
+    return None
+
+def check_freemail_org(parsed, found):
+    # An organisation's name on a personal webmail account, like a "bank" on Gmail
+    sender = domain_of(parsed["from"]) or ""
+    if sender not in FREEMAIL:
+        return None
+
+    # The display name is everything before the < of the address
+    name = str(parsed["from"] or "").split("<")[0]
+
+    # Real people's names rarely have long numbers, [brackets] or words like "Bank"
+    looks_official = (re.search(r"\d{6,}", name)
+                      or "[" in name
+                      or ORG_WORDS.search(name))
+    if looks_official:
+        return finding("freemail_org", 3,
+                       f"Official-looking sender name, but sent from a personal {sender} account")
     return None
 
 def check_ip_links(parsed, found):
@@ -211,7 +238,8 @@ def check_spaced_name(parsed, found):
 # Every check in one list, so run_checks() can loop through them
 CHECKS = [check_authentication, check_reply_to, check_ip_links, check_link_text,
           check_attachments, check_empty_body, check_invisible_chars, check_urgency,
-          check_brand_mismatch, check_dkim_dmarc, check_shortened_links, check_spaced_name]
+          check_brand_mismatch, check_dkim_dmarc, check_shortened_links, check_spaced_name,
+          check_freemail_org]
 
 
 def run_checks(parsed, found):

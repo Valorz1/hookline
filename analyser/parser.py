@@ -4,35 +4,45 @@ from email.parser import BytesParser
 
 
 def read_email(path):
-    """Read and parse an email file.
+    """Read a .eml file from disk and return its key parts as a dictionary.
 
     Args:
         path (str or Path): The path to the .eml file.
 
     Returns:
-        dict: The email's headers, plain text body and HTML body.
+        dict: The email's headers, plain text body, HTML body and attachments.
     """
-    # Read as raw bytes and let the parser work out the encoding,
-    # because emails can be written in any language or character set.
     with open(path, "rb") as file:
-        msg = BytesParser(policy=policy.default).parse(file)
+        return parse_email_bytes(file.read())
+
+
+def parse_email_bytes(data):
+    """Parse an email that's already in memory, like a file uploaded to the web page.
+
+    Args:
+        data (bytes): The raw contents of a .eml file.
+
+    Returns:
+        dict: The email's headers, plain text body, HTML body and attachments.
+    """
+    # Raw bytes, so the parser can work out the encoding itself
+    msg = BytesParser(policy=policy.default).parsebytes(data)
 
     # Keep both body versions: phishing links often hide in the HTML.
     # get_body() returns None if that version doesn't exist.
     plain_part = msg.get_body(preferencelist=("plain",))
     html_part = msg.get_body(preferencelist=("html",))
-        
-    # List attachments without opening or saving them. The fingerprint
-    # (SHA-256 hash) lets us look a file up on VirusTotal later without
-    # ever uploading it.
+
+    # List attachments without opening or saving them. The SHA-256 hash
+    # lets us look a file up on VirusTotal without uploading it.
     attachments = []
     for part in msg.iter_attachments():
-        data = part.get_payload(decode=True) or b""
+        payload = part.get_payload(decode=True) or b""
         attachments.append({
             "filename": part.get_filename() or "(no name)",
             "content_type": part.get_content_type(),
-            "size": len(data),
-            "sha256": hashlib.sha256(data).hexdigest(),
+            "size": len(payload),
+            "sha256": hashlib.sha256(payload).hexdigest(),
         })
 
     return {

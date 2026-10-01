@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {% set advice = {
+    "Safe": "No strong warning signs. If the email is unexpected, check with the sender another way before acting on it.",
+    "Suspicious": "Some warning signs. Don't click links or open attachments until you've confirmed it with the sender another way.",
+    "Malicious": "Strong evidence this is a scam. Don't click anything. Report it, then delete it."
+  } %}
+  <section id="result" class="result {{ outcome.verdict | lower }}" aria-labelledby="verdict">
+    <p class="meta">{{ filename }}</p>
+    <h2 id="verdict">{{ outcome.verdict }}</h2>
+    <p class="advice">{{ advice[outcome.verdict] }}</p>
+    <p class="subject"><span>Subject</span> {{ parsed.subject or "(no subject)" }}</p>
+
+    {% if outcome.reasons %}
+      <h3>Why ({{ outcome.score }} points)</h3>
+      <ul class="reasons">
+        {% for reason in outcome.reasons %}
+          <li><span class="points" title="Points">{{ reason.points }}</span>{{ reason.detail }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="none">HookLine found no red flags in this email.</p>
+    {% endif %}
+  </section>
+
+  <section class="evidence" aria-labelledby="evidence">
+    <h3 id="evidence">What HookLine found</h3>
+    {% set labels = {"urls": "Links", "domains": "Domains", "ips": "IP addresses", "emails": "Email addresses"} %}
+    {% for kind, items in found.items() %}
+      <details>
+        <summary>{{ labels[kind] }} <span class="count">{{ items | length }}</span></summary>
+        {% if items %}
+          <ul class="items">{% for item in items %}<li>{{ item }}</li>{% endfor %}</ul>
+        {% else %}
+          <p class="none">None</p>
+        {% endif %}
+      </details>
+    {% endfor %}
+
+    <details {% if parsed.attachments %}open{% endif %}>
+      <summary>Attachments <span class="count">{{ parsed.attachments | length }}</span></summary>
+      {% if parsed.attachments %}
+        <ul class="items">
+          {% for a in parsed.attachments %}
+            <li>{{ a.filename }} <small>{{ a.content_type }}, {{ a.size }} bytes<br>SHA-256 {{ a.sha256 }}</small></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="none">None</p>
+      {% endif %}
+    </details>
+
+    {% if vt_results %}
+      <details open>
+        <summary>VirusTotal <span class="count">{{ vt_results | length }}</span></summary>
+        <ul class="items">
+          {% for r in vt_results %}
+            <li>{{ r.value }}
+              <small>
+                {% if r.status == "found" %}{{ r.malicious }} of {{ r.engines }} engines say malicious
+                {% elif r.status == "not_found" %}Never seen by VirusTotal
+                {% else %}Lookup failed: {{ r.detail }}{% endif %}
+              </small>
+            </li>
+          {% endfor %}
+        </ul>
+      </details>
+    {% endif %}
+  </section>
+{% endblock %}

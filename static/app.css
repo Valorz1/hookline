@@ -1,0 +1,134 @@
+/* ---------- design tokens: change these to restyle the whole page ---------- */
+:root {
+  --bg: #e9efee;          /* sea glass */
+  --surface: #f6f8f7;
+  --ink: #142429;
+  --muted: #52646a;
+  --line: #c3cfcd;
+  --safe: #2d7350;
+  --suspicious: #9c6410;
+  --malicious: #ae2a1d;
+  --focus: #1d5f8a;
+  --display: "Bahnschrift", "DIN Alternate", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --text: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Mono", Consolas, "SF Mono", monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1d22;
+    --surface: #16272d;
+    --ink: #e2ebea;
+    --muted: #93a6aa;
+    --line: #2c4148;
+    --safe: #6fc79a;
+    --suspicious: #e0a94e;
+    --malicious: #f07a6c;
+    --focus: #7fb8e0;
+  }
+}
+
+/* Lets the browser's own controls (Choose File button, checkbox) follow light/dark */
+:root { color-scheme: light dark; }
+
+/* ---------- base ---------- */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 1rem/1.55 var(--text);
+}
+
+main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 3rem 1.25rem 5rem;
+}
+
+h1, h2, h3 { font-family: var(--display); font-stretch: condensed; line-height: 1.05; }
+
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- masthead ---------- */
+.masthead h1 { margin: 0; font-size: 1.75rem; font-weight: 600; }
+.masthead h1 a { color: inherit; text-decoration: none; }
+.intro { margin-top: 1.25rem; }
+.masthead p { margin: 0.25rem 0 2rem; color: var(--muted); }
+
+/* ---------- upload form ---------- */
+.upload {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.field span { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+.field input { font: inherit; max-width: 100%; }
+.option { color: var(--muted); }
+.option input { margin-right: 0.4rem; }
+
+button {
+  justify-self: start;
+  font: 600 1rem var(--text);
+  padding: 0.6rem 1.2rem;
+  color: var(--surface);
+  background: var(--ink);
+  border: 0;
+  cursor: pointer;
+}
+button:hover { background: var(--focus); }
+
+.error { margin-top: 1rem; color: var(--malicious); font-weight: 600; }
+
+/* ---------- the verdict: the one bold thing on the page ---------- */
+.result {
+  --verdict: var(--muted);
+  margin-top: 3rem;
+  padding-left: 1.5rem;
+  border-left: 6px solid var(--verdict);   /* the "line" */
+}
+.result.safe { --verdict: var(--safe); }
+.result.suspicious { --verdict: var(--suspicious); }
+.result.malicious { --verdict: var(--malicious); }
+
+.result .meta { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.result h2 {
+  margin: 0.1rem 0 0.5rem;
+  font-size: clamp(3.5rem, 12vw, 6.5rem);
+  font-weight: 700;
+  color: var(--verdict);
+}
+.advice { margin: 0 0 1.25rem; font-size: 1.15rem; max-width: 36rem; }
+.subject { margin: 0 0 1.5rem; overflow-wrap: anywhere; }
+.subject span { color: var(--muted); margin-right: 0.4rem; }
+
+.result h3, .evidence h3 { font-size: 1.35rem; margin: 0 0 0.6rem; }
+
+.reasons { list-style: none; margin: 0; padding: 0; }
+.reasons li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--line);
+}
+.points {
+  flex: none;
+  min-width: 1.6rem;
+  font: 700 1.05rem var(--display);
+  color: var(--verdict);
+}
+
+/* ---------- evidence: quiet, collapsed by default ---------- */
+.evidence { margin-top: 3rem; }
+details { border-top: 1px solid var(--line); padding: 0.6rem 0; }
+details:last-child { border-bottom: 1px solid var(--line); }
+summary { cursor: pointer; font-weight: 600; }
+.count { color: var(--muted); font-weight: 400; margin-left: 0.3rem; }
+.items { margin: 0.5rem 0 0; padding-left: 1.1rem; font-family: var(--mono); font-size: 0.85rem; }
+.items li { margin: 0.3rem 0; overflow-wrap: anywhere; }
+.items small { display: block; font-family: var(--text); color: var(--muted); }
+.none { color: var(--muted); margin: 0.4rem 0 0; }
