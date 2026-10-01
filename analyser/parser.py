@@ -1,3 +1,4 @@
+import hashlib
 from email import policy
 from email.parser import BytesParser
 
@@ -20,6 +21,19 @@ def read_email(path):
     # get_body() returns None if that version doesn't exist.
     plain_part = msg.get_body(preferencelist=("plain",))
     html_part = msg.get_body(preferencelist=("html",))
+        
+    # List attachments without opening or saving them. The fingerprint
+    # (SHA-256 hash) lets us look a file up on VirusTotal later without
+    # ever uploading it.
+    attachments = []
+    for part in msg.iter_attachments():
+        data = part.get_payload(decode=True) or b""
+        attachments.append({
+            "filename": part.get_filename() or "(no name)",
+            "content_type": part.get_content_type(),
+            "size": len(data),
+            "sha256": hashlib.sha256(data).hexdigest(),
+        })
 
     return {
         "subject": msg["subject"],
@@ -30,4 +44,5 @@ def read_email(path):
         "auth_results": msg["authentication-results"],
         "body": plain_part.get_content() if plain_part else "",
         "html": html_part.get_content() if html_part else "",
+        "attachments": attachments,
     }
