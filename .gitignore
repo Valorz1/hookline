@@ -1,3 +1,4 @@
+vt_cache.json
 .venv/
 .env
 __pycache__/

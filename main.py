@@ -3,10 +3,14 @@ import sys
 from analyser.parser import read_email
 from analyser.observables import extract_observables
 from analyser.checks import run_checks
+from analyser.virustotal import choose_targets, describe, lookup
 
-# Use the file named on the command line, or a default sample if none is given
-if len(sys.argv) > 1:
-    path = sys.argv[1]
+# Anything starting with -- is an option; the rest is the file to analyse
+args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
+use_virustotal = "--no-vt" not in sys.argv
+
+if args:
+    path = args[0]
 else:
     path = "samples/fake/phish_03_password_expiry.eml"
 
@@ -32,3 +36,9 @@ total = sum(flag["points"] for flag in findings)
 print(f"\nRED FLAGS ({len(findings)} found, {total} points)")
 for flag in findings:
     print(f"   [{flag['points']}] {flag['detail']}")
+
+if use_virustotal:
+    targets = choose_targets(found, parsed["attachments"])
+    print(f"\nVIRUSTOTAL ({len(targets)} lookups, about 15 seconds each)")
+    for kind, value in targets:
+        print("  ", describe(lookup(kind, value)))
