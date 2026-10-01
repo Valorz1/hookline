@@ -1,14 +1,17 @@
 import re 
-from email.utils import parseaddr
+import unicodedata
+from email.utils import getaddresses
 from urllib.parse import urlparse
 
 from analyser.observables import find_urls, is_ip
-# THIS FILE TYPE THAT RUN IN THE CODE WHEN OPENDED
-RISKY_EXTENSIONS = {".exe", ".scr", ".bat", ".cmd", ".com", ".pif", ".js", ".vbs", ".wsf"}
 
-#famous brand and their real domains.
+# File types that run code when opened. Real documents are never these.
+RISKY_EXTENSIONS = {".exe", ".scr", ".bat", ".cmd", ".com", ".pif", ".js", ".vbs", ".wsf",
+                    ".ps1", ".jar", ".msi", ".iso", ".img", ".hta", ".lnk"}
+
+# Famous brands and their real domains.
 BRANDS = {
-        "amazon": "amazon.com",
+    "amazon": "amazon.com",
     "microsoft": "microsoft.com",
     "paypal": "paypal.com",
     "apple": "apple.com",
@@ -18,7 +21,7 @@ BRANDS = {
     "binance": "binance.com",
 }
 
-#Phrase phising uses to rush peopel.
+# Phrases phishing uses to rush people.
 RISKY_PATTERNS = [
     r"\burgent\b", r"\bimmediately\b", r"\bwithin \d+ hours\b", r"\b\d+ hours\b",
     r"\baction required\b", r"\bverify your\b", r"\bsuspended\b", r"\blimited\b",
@@ -27,13 +30,15 @@ RISKY_PATTERNS = [
     r"\bkeep this between us\b", r"\bdate of birth\b",
 ]
 
-# Invisible characters used in phishing attempts
-#char you dont see the attack and the attack use them tpo break up word like.
-INVISIBLE_CHARS = {"\u200b", "\u200c", "\u200d", "\ufeff", "\u2060", "\u2061", "\u2062", "\u2063", "\u2064", "\u2065", "\u2066", "\u2067", "\u2068", "\u2069"}
+# Characters you can't see. Attackers use them to break up words like
+# "PayPal" so filters don't match, or to pad out an empty-looking body.
+INVISIBLE_CHARS = {"\u200b", "\u200c", "\u200d", "\ufeff", "\u2060", "\u00ad", "\u2800",
+                   "\u2061", "\u2062", "\u2063", "\u2064", "\u2066", "\u2067", "\u2068", "\u2069"}
 
 
-#Find links in the HTMl version.
-LINK_PATTERN = re.compile(r"<a\s[^>]*href=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>", re.DOTALL)
+# Find links in the HTML version. HTML ignores case, so <A HREF> counts too.
+LINK_PATTERN = re.compile(r"<a\s[^>]*href=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>",
+                          re.IGNORECASE | re.DOTALL)
 
 
 TAG_PATTERN = re.compile(r"<[^>]+>")
@@ -41,8 +46,13 @@ TAG_PATTERN = re.compile(r"<[^>]+>")
 
 def domain_of(header):
     """Name of the domain that sent an email, or None if it can't be determined."""
-    address = parseaddr(str(header or ""))[1]
-    return address.split("@", 1)[-1].lower() if "@" in address else None
+    # getaddresses copes with messy headers that list several addresses,
+    # like '"Microsoft account team", _ <x@evil.com>'. The real address is
+    # usually last, so take the last one that has an @.
+    for _, address in reversed(getaddresses([str(header or "")])):
+        if "@" in address:
+            return address.split("@")[-1].lower()
+    return None
 
 def finding (name, point, detail):
     """Return a dictionary describing a finding."""
@@ -70,7 +80,8 @@ def check_reply_to(parsed, found):
     sender = domain_of(parsed["from"])
     reply = domain_of(parsed["reply_to"])
     if reply and reply != sender:
-        return finding("reply_to_mismatch", 3, f"Reply-To domain {reply} doesn't match sender {sender}")
+        return finding("reply_to_mismatch", 3,
+                       f"Reply-To domain {reply} doesn't match sender {sender or '(no valid address)'}")
 
     return None
 
@@ -142,16 +153,28 @@ def check_urgency(parsed, found):
 
 
 def check_brand_mismatch(parsed, found):
-    # A famous brand in the display name, but sent from a domain the brand doesn't own
-    name = parseaddr(str(parsed["from"] or ""))[0].lower()
+    # A famous brand in the From header, but sent from a domain the brand doesn't own.
+    # Search the whole header, not just the parsed display name, because
+    # attackers deliberately format it to confuse parsers.
+    name = plain_text(str(parsed["from"] or "")).lower()
     sender = domain_of(parsed["from"]) or ""
     for brand, real_domain in BRANDS.items():
         # Real brands often send from a subdomain, like email.amazon.com
         is_real = sender == real_domain or sender.endswith("." + real_domain)
         if brand in name and not is_real:
             return finding("brand_mismatch", 4,
-                           f"Display name says {brand} but the email came from {sender}")
+                           f"From header mentions {brand} but the email came from {sender}")
     return None
+
+
+def plain_text(text):
+    """Strip disguises: 'Aܿmܿaܿzܿon' -> 'Amazon', '𝕚ℂ𝕝𝕠𝕦𝕕' -> 'iCloud'."""
+    # NFKD turns fancy letters into plain ones and splits off accents/marks
+    text = unicodedata.normalize("NFKD", text)
+    # Drop the combining marks and invisible characters, keep everything else
+    return "".join(ch for ch in text
+                   if not unicodedata.combining(ch) and ch not in INVISIBLE_CHARS)
+
 
 
 # Every check in one list, so run_checks() can loop through them
