@@ -1,0 +1,43 @@
+{# The upload card. Included by the home page and the result page. #}
+<form class="upload card" action="{{ url_for('analyse') }}" method="post" enctype="multipart/form-data">
+  {% if error %}
+    <div class="alert" role="alert">
+      <svg class="icon" aria-hidden="true"><use href="#alert"/></svg>
+      <p>{{ error }}</p>
+    </div>
+  {% endif %}
+
+  <div class="dropzone">
+    <span class="drop-icon"><svg class="icon" aria-hidden="true"><use href="#upload"/></svg></span>
+    <p class="drop-title">Drop an .eml file here, or <u>browse</u></p>
+    <p class="file-name" aria-live="polite">Only .eml files, up to 10 MB</p>
+    <!-- The real file input covers the whole drop zone, invisibly, so clicking
+         and dragging a file onto it both work -->
+    <input type="file" name="email" accept=".eml,message/rfc822" required aria-label="Email file (.eml)">
+  </div>
+
+  <label class="switch">
+    <input type="checkbox" name="virustotal" value="1" role="switch">
+    <span class="track" aria-hidden="true"></span>
+    <span class="switch-text">
+      <span>Check on VirusTotal</span>
+      <small>Looks up attachments, links and domains. Can take up to 2 minutes.</small>
+    </span>
+  </label>
+
+  <button class="btn-primary" type="submit">
+    <span>Analyse email</span>
+    <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg>
+  </button>
+
+  <!-- Hidden until the form is sent. hookline.js fills in the step and the timer -->
+  <div class="progress" role="status">
+    <div class="progress-head">
+      <span class="progress-label">Reading the email</span>
+      <span class="progress-time">0:00</span>
+    </div>
+    <div class="bar"><span></span></div>
+  </div>
+
+  <p class="hint">In Gmail, open the email, click the ⋮ menu, then <b>Download message</b>.</p>
+</form>

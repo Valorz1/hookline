@@ -1,5 +1,114 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <p class="none intro">Choose an .eml file above and click Analyse email. The file is read in memory and never saved.</p>
+  <section class="hero">
+    {# Decoration only: dot grid, glow, thin frame lines and rings #}
+    <div class="hero-bg" aria-hidden="true">
+      <div class="dots"></div>
+      <div class="glow"></div>
+      <div class="frame"><i></i><i></i><i></i><i></i></div>
+      <div class="rings"><div><div><div></div></div></div></div>
+    </div>
+
+    <div class="hero-copy">
+      <p class="eyebrow reveal"><span class="dot"></span>Phishing email analyser</p>
+      <h1 class="reveal">
+        Check a suspicious email before anyone
+        <span class="rotator" data-words="clicks it.|opens the attachment.|pays the invoice.|types a password.">clicks it.</span>
+      </h1>
+      <p class="lede reveal">
+        Drop in an .eml file. HookLine pulls out every link, domain and attachment,
+        runs 13 red-flag checks, can ask VirusTotal, and tells you
+        <b class="t-safe">Safe</b>, <b class="t-suspicious">Suspicious</b> or
+        <b class="t-malicious">Malicious</b>, with the reasons.
+      </p>
+    </div>
+
+    <div class="hero-form reveal">
+      {% include "_upload.html" %}
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="how">
+    <p class="eyebrow reveal">How it works</p>
+    <h2 id="how" class="reveal">From raw email to verdict in five steps</h2>
+    <ol class="steps">
+      {% set steps = [
+        ("mail", "Parse", "Reads the headers, both body versions and the attachments."),
+        ("search", "Extract", "Finds every link, domain, IP address and email address."),
+        ("list", "Check", "Looks for 13 red flags and scores each one."),
+        ("radar", "Look up", "Optionally asks VirusTotal about the evidence."),
+        ("gauge", "Verdict", "Adds up the points and explains the result."),
+      ] %}
+      {% for icon, title, text in steps %}
+        <li class="step card reveal" style="--i: {{ loop.index0 }}">
+          <span class="step-num">0{{ loop.index }}</span>
+          <span class="tile"><svg class="icon" aria-hidden="true"><use href="#{{ icon }}"/></svg></span>
+          <h3>{{ title }}</h3>
+          <p>{{ text }}</p>
+        </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="section" aria-labelledby="hood">
+    <p class="eyebrow reveal">Under the hood</p>
+    <h2 id="hood" class="reveal">Scored evidence, not a guess</h2>
+
+    <div class="bento">
+      <article class="card bento-wide reveal">
+        <h3>13 red-flag checks</h3>
+        <p>Each one looks for a single trick phishing emails use, and adds points when it finds it.</p>
+        {% set flags = ["SPF failed", "DKIM failed", "DMARC failed", "Reply-To mismatch", "Brand impersonation",
+                        "Spaced-out sender name", "Raw IP links", "Link text mismatch", "URL shorteners",
+                        "Programs as attachments", "Double extensions", "Empty body + attachment",
+                        "Invisible characters", "Pressure language", "Official name on Gmail"] %}
+        <div class="marquee" aria-hidden="true">
+          <div class="marquee-row">
+            {% for f in flags %}<span class="flag">{{ f }}</span>{% endfor %}
+            {% for f in flags %}<span class="flag">{{ f }}</span>{% endfor %}
+          </div>
+          <div class="marquee-row reverse">
+            {% for f in flags | reverse %}<span class="flag">{{ f }}</span>{% endfor %}
+            {% for f in flags | reverse %}<span class="flag">{{ f }}</span>{% endfor %}
+          </div>
+        </div>
+        <ul class="visually-hidden">{% for f in flags %}<li>{{ f }}</li>{% endfor %}</ul>
+      </article>
+
+      <article class="card reveal">
+        <h3>The score scale</h3>
+        <p>The points from every red flag are added up.</p>
+        <div class="scale" aria-hidden="true">
+          <span class="seg safe"></span><span class="seg suspicious"></span><span class="seg malicious"></span>
+        </div>
+        <ul class="scale-legend">
+          <li><span class="key safe"></span>Safe <small>0–1</small></li>
+          <li><span class="key suspicious"></span>Suspicious <small>2–5</small></li>
+          <li><span class="key malicious"></span>Malicious <small>6+</small></li>
+        </ul>
+      </article>
+
+      <article class="card reveal">
+        <h3>Tested on real phishing</h3>
+        <p class="stat">86%</p>
+        <p>43 of 50 real phishing emails caught, without VirusTotal.</p>
+      </article>
+
+      <article class="card reveal">
+        <h3>VirusTotal, within the free limits</h3>
+        <ul class="facts">
+          <li><b>~90</b> security engines</li>
+          <li><b>8</b> lookups per email at most</li>
+          <li><b>0</b> lookups repeated: answers are cached</li>
+        </ul>
+      </article>
+
+      <article class="card reveal">
+        <h3>Nothing leaves without asking</h3>
+        <p>The file is read in memory and never saved. Attachments are fingerprinted with SHA-256, never uploaded.</p>
+        <p class="hash" aria-hidden="true">sha256 · 9f86d081884c7d65…</p>
+      </article>
+    </div>
+  </section>
 {% endblock %}

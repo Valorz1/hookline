@@ -3,40 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% if outcome %}{{ outcome.verdict }} · {% endif %}HookLine</title>
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}HookLine{% endblock %}</title>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/inter.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <script>
+    // Runs before the page is drawn, so a saved light/dark choice never flickers
+    try {
+      var saved = localStorage.getItem("hookline-theme");
+      if (saved) document.documentElement.dataset.theme = saved;
+    } catch (e) {}
+  </script>
+  <script src="{{ url_for('static', filename='hookline.js') }}" defer></script>
 </head>
 <body>
+  {% include "_icons.svg" %}
+
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="logo" href="{{ url_for('index') }}">
+        <span class="logo-mark"><svg class="icon" aria-hidden="true"><use href="#hook"/></svg></span>
+        HookLine
+      </a>
+      <div class="nav-actions">
+        <span class="chip"><span class="dot"></span>Read in memory, never saved</span>
+        {% block nav_action %}{% endblock %}
+        <button class="icon-btn theme-toggle" type="button" aria-label="Switch between light and dark mode">
+          <svg class="icon sun" aria-hidden="true"><use href="#sun"/></svg>
+          <svg class="icon moon" aria-hidden="true"><use href="#moon"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
   <main>
-    <header class="masthead">
-      <h1><a href="{{ url_for('index') }}">HookLine</a></h1>
-      <p>Check a suspicious email before anyone clicks it.</p>
-    </header>
-
-    <form class="upload" action="{{ url_for('analyse') }}#result" method="post" enctype="multipart/form-data">
-      <label class="field">
-        <span>Email file (.eml)</span>
-        <input type="file" name="email" accept=".eml,message/rfc822" required>
-      </label>
-      <label class="option">
-        <input type="checkbox" name="virustotal" value="1" checked>
-        Also check VirusTotal (can take up to 2 minutes)
-      </label>
-      <button type="submit">Analyse email</button>
-    </form>
-
-    {% if error %}
-      <p class="error" role="alert">{{ error }}</p>
-    {% endif %}
-
+    {# Each page that extends this one fills in its own content here #}
     {% block content %}{% endblock %}
   </main>
-  <script>
-    document.querySelector(".upload").addEventListener("submit", function (e) {
-      var b = e.target.querySelector("button");
-      b.disabled = true;
-      b.textContent = e.target.virustotal.checked ? "Checking... (VirusTotal can take a minute or two)" : "Checking...";
-    });
-  </script>
+
+  <footer class="footer">
+    <p><svg class="icon" aria-hidden="true"><use href="#hook"/></svg> HookLine · phishing email analyser</p>
+    <p>Emails are analysed on this computer. VirusTotal only sees hashes, links and domains, and only when you switch it on.</p>
+  </footer>
 </body>
 </html>

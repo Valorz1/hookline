@@ -4,6 +4,7 @@ import os
 import time
 from pathlib import Path
 from urllib.parse import urlparse
+from analyser.checks import FREEMAIL
 
 import requests
 from dotenv import load_dotenv
@@ -46,6 +47,8 @@ def _save_cache():
 def is_allowlisted(domain):
     """True for allowlisted domains and their subdomains (fonts.googleapis.com)."""
     domain = (domain or "").lower()
+    if domain in FREEMAIL:
+        return True # gmail.com etc are nerver malicious as a whole domain.
     return any(domain == safe or domain.endswith("." + safe) for safe in ALLOWLIST)
 
 

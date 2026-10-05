@@ -1,134 +1,735 @@
-/* ---------- design tokens: change these to restyle the whole page ---------- */
+/* HookLine, styled after Watermelon UI (ui.watermelon.sh):
+   neutral greys, Inter, a lime accent, dot grids, soft glows and springy motion. */
+
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/inter.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* ---------- design tokens: change these to restyle the whole page ----------
+   light-dark(light value, dark value) picks the right one for the current theme,
+   so each colour is only written once. */
 :root {
-  --bg: #e9efee;          /* sea glass */
-  --surface: #f6f8f7;
-  --ink: #142429;
-  --muted: #52646a;
-  --line: #c3cfcd;
-  --safe: #2d7350;
-  --suspicious: #9c6410;
-  --malicious: #ae2a1d;
-  --focus: #1d5f8a;
-  --display: "Bahnschrift", "DIN Alternate", "Roboto Condensed", "Arial Narrow", sans-serif;
-  --text: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --mono: "Cascadia Mono", Consolas, "SF Mono", monospace;
-}
+  color-scheme: light dark;
+  --bg: light-dark(#fafafa, #0a0a0a);
+  --card: light-dark(#ffffff, #121212);
+  --card-2: light-dark(#f5f5f5, #1a1a1a);        /* tiles and inputs inside cards */
+  --ink: light-dark(#0a0a0a, #fafafa);
+  --muted: light-dark(#666666, #a1a1a1);
+  --border: light-dark(#e5e5e5, rgb(255 255 255 / 0.1));
+  --border-strong: light-dark(#d4d4d4, rgb(255 255 255 / 0.18));
+  --dot: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.06));
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1d22;
-    --surface: #16272d;
-    --ink: #e2ebea;
-    --muted: #93a6aa;
-    --line: #2c4148;
-    --safe: #6fc79a;
-    --suspicious: #e0a94e;
-    --malicious: #f07a6c;
-    --focus: #7fb8e0;
-  }
-}
+  --primary: #80cd00;                             /* Watermelon's lime */
+  --primary-ink: light-dark(#3f6c00, #80cd00);    /* lime that's readable as text */
+  --on-primary: #0a0a0a;
 
-/* Lets the browser's own controls (Choose File button, checkbox) follow light/dark */
-:root { color-scheme: light dark; }
+  /* Verdict colours: checked for colour-blind separation on both themes.
+     The -ink versions are for text and pass WCAG contrast. */
+  --safe: light-dark(#497d00, #62a400);
+  --suspicious: light-dark(#f99c00, #fcbb00);
+  --malicious: light-dark(#df2225, #f2555a);
+  --safe-ink: light-dark(#3f6c00, #80cd00);
+  --suspicious-ink: light-dark(#b75000, #fcbb00);
+  --malicious-ink: light-dark(#c81e1e, #ff6568);
+
+  --shadow: light-dark(0 1px 2px rgb(0 0 0 / 0.04), 0 1px 2px rgb(0 0 0 / 0.4));
+  --shadow-lg: light-dark(0 12px 32px -12px rgb(0 0 0 / 0.12), 0 16px 40px -12px rgb(0 0 0 / 0.7));
+  --highlight: light-dark(rgb(255 255 255 / 0), rgb(255 255 255 / 0.05)); /* top-edge sheen on dark cards */
+
+  --radius: 1.25rem;       /* cards */
+  --radius-md: 0.75rem;    /* controls inside cards */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);     /* Watermelon's "expo out" */
+  --spring: cubic-bezier(0.34, 1.4, 0.64, 1);    /* a little overshoot */
+  --sans: "Inter", "Segoe UI Variable Text", system-ui, sans-serif;
+  --mono: "Cascadia Mono", ui-monospace, Consolas, "SF Mono", monospace;
+
+  interpolate-size: allow-keywords;  /* lets <details> animate to height: auto */
+}
+/* The theme button sets data-theme; without it the system setting wins */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 /* ---------- base ---------- */
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: var(--bg);
   color: var(--ink);
-  font: 1rem/1.55 var(--text);
+  font: 400 1rem/1.6 var(--sans);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;   /* the hero decorations run wider than the screen */
+}
+main { flex: 1; width: 100%; max-width: 72rem; margin: 0 auto; padding: 0 1.25rem 4rem; }
+
+h1, h2, h3 { line-height: 1.05; letter-spacing: -0.035em; font-weight: 650; margin: 0; }
+p { margin: 0; }
+b { font-weight: 600; }
+
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 4px; }
+::selection { background: color-mix(in srgb, var(--primary) 40%, transparent); }
+
+.icon { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.8;
+        stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.t-safe { color: var(--safe-ink); }
+.t-suspicious { color: var(--suspicious-ink); }
+.t-malicious { color: var(--malicious-ink); }
+
+/* A card: the basic surface everything sits on */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 var(--highlight), var(--shadow);
 }
 
-main {
-  max-width: 46rem;
-  margin: 0 auto;
-  padding: 3rem 1.25rem 5rem;
+/* Small uppercase label with a glowing dot, like Watermelon's hero badge */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font: 600 0.72rem/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary-ink);
+}
+.dot {
+  width: 0.45rem; height: 0.45rem; border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
 }
 
-h1, h2, h3 { font-family: var(--display); font-stretch: condensed; line-height: 1.05; }
+/* An icon in a little rounded square */
+.tile {
+  display: inline-grid; place-items: center;
+  width: 2.25rem; height: 2.25rem; flex: none;
+  border-radius: 0.65rem;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  color: var(--ink);
+}
+.tile .icon { width: 1.1rem; height: 1.1rem; }
 
-:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* ---------- badges: small pills for counts and statuses ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.1rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-2);
+  font: 600 0.75rem/1.5 var(--sans);
+  color: var(--muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.badge i { width: 0.4rem; height: 0.4rem; border-radius: 50%; background: currentColor; }
+.badge.bad  { color: var(--malicious-ink);  background: color-mix(in srgb, var(--malicious) 12%, transparent);  border-color: color-mix(in srgb, var(--malicious) 30%, transparent); }
+.badge.warn { color: var(--suspicious-ink); background: color-mix(in srgb, var(--suspicious) 12%, transparent); border-color: color-mix(in srgb, var(--suspicious) 30%, transparent); }
+.badge.good { color: var(--safe-ink);       background: color-mix(in srgb, var(--safe) 12%, transparent);       border-color: color-mix(in srgb, var(--safe) 30%, transparent); }
 
-/* ---------- masthead ---------- */
-.masthead h1 { margin: 0; font-size: 1.75rem; font-weight: 600; }
-.masthead h1 a { color: inherit; text-decoration: none; }
-.intro { margin-top: 1.25rem; }
-.masthead p { margin: 0.25rem 0 2rem; color: var(--muted); }
+/* ---------- navigation bar: stays at the top, frosted glass ---------- */
+.nav {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
+  backdrop-filter: blur(12px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  max-width: 72rem; margin: 0 auto; padding: 0.7rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.logo { display: inline-flex; align-items: center; gap: 0.6rem; font-weight: 650; letter-spacing: -0.02em;
+        color: inherit; text-decoration: none; font-size: 1.05rem; }
+.logo-mark {
+  display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 0.6rem;
+  background: var(--primary); color: var(--on-primary);
+  box-shadow: 0 0 18px -2px color-mix(in srgb, var(--primary) 60%, transparent);
+}
+.logo-mark .icon { width: 1.1rem; height: 1.1rem; stroke-width: 2.2; }
+.nav-actions { display: flex; align-items: center; gap: 0.5rem; }
 
-/* ---------- upload form ---------- */
+.chip {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.3rem 0.75rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--card);
+  font-size: 0.78rem; color: var(--muted);
+}
+.chip .dot { width: 0.4rem; height: 0.4rem; box-shadow: none; }
+@media (max-width: 40rem) { .chip { display: none; } }
+
+.icon-btn, .btn-ghost {
+  display: inline-grid; place-items: center;
+  height: 2.25rem; min-width: 2.25rem; padding: 0 0.5rem;
+  border: 1px solid var(--border); border-radius: 0.65rem;
+  background: var(--card); color: var(--ink);
+  font: 500 0.85rem var(--sans); text-decoration: none; cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.btn-ghost { padding: 0 0.85rem; }
+.icon-btn:hover, .btn-ghost:hover { background: var(--card-2); border-color: var(--border-strong); }
+.icon-btn .icon { width: 1.1rem; height: 1.1rem; grid-area: 1 / 1; transition: transform 0.5s var(--spring), opacity 0.3s; }
+
+/* Show the moon in light mode and the sun in dark mode, spinning between them */
+.theme-toggle .sun { transform: rotate(-90deg) scale(0); opacity: 0; }
+:root[data-theme="dark"] .theme-toggle .sun { transform: none; opacity: 1; }
+:root[data-theme="dark"] .theme-toggle .moon { transform: rotate(90deg) scale(0); opacity: 0; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .sun { transform: none; opacity: 1; }
+  :root:not([data-theme="light"]) .theme-toggle .moon { transform: rotate(90deg) scale(0); opacity: 0; }
+}
+
+/* ---------- hero ---------- */
+.hero {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2.5rem;
+  padding: 5.5rem 0 4rem;
+  text-align: center;
+}
+.hero-bg { position: absolute; inset: 0 calc(50% - 50vw); z-index: -1; overflow: hidden; pointer-events: none; }
+
+/* A grid of faint dots that fades out towards the edges */
+.dots {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.5px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse 50% 60% at 50% 35%, #000 30%, transparent 100%);
+}
+/* The lime glow behind the heading */
+.glow {
+  position: absolute; left: 50%; top: 9rem; width: 44rem; height: 26rem;
+  translate: -50% 0;
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--primary) 18%, transparent), transparent 65%);
+  filter: blur(20px);
+  animation: glow-in 1.4s var(--ease-out) 0.3s both;
+}
+@keyframes glow-in { from { opacity: 0; scale: 0.8; } }
+
+/* Thin "technical drawing" frame lines with crosshairs where they meet */
+.frame { position: absolute; inset: 2.5rem max(1rem, 50% - 35rem); }
+.frame i { position: absolute; background: var(--border); }
+.frame i:nth-child(1) { top: 0; left: -100vw; right: -100vw; height: 1px; }
+.frame i:nth-child(2) { bottom: 0; left: -100vw; right: -100vw; height: 1px; }
+.frame i:nth-child(3) { left: 0; top: -100vh; bottom: -100vh; width: 1px; }
+.frame i:nth-child(4) { right: 0; top: -100vh; bottom: -100vh; width: 1px; }
+.frame::before, .frame::after {
+  content: ""; position: absolute; left: 0; top: 0; width: 15px; height: 15px; translate: -7px -7px;
+  background: linear-gradient(var(--primary), var(--primary)) center / 100% 1px no-repeat,
+              linear-gradient(var(--primary), var(--primary)) center / 1px 100% no-repeat;
+}
+.frame::after { left: 100%; top: 100%; background: linear-gradient(var(--border-strong), var(--border-strong)) center / 100% 1px no-repeat,
+                linear-gradient(var(--border-strong), var(--border-strong)) center / 1px 100% no-repeat; }
+@media (max-width: 64rem) { .frame { display: none; } }
+
+/* Concentric rings peeking in from the left edge */
+.rings, .rings div {
+  position: absolute; border-radius: 50%; border: 1px solid var(--border);
+  display: grid; place-items: center;
+}
+.rings { width: 48rem; height: 48rem; left: 0; top: 50%; translate: -50% -50%; opacity: 0.7; }
+.rings > div { position: static; width: 75%; height: 75%; border-style: dashed; }
+.rings > div > div { position: static; width: 66%; height: 66%; }
+.rings > div > div > div { position: static; width: 50%; height: 50%; border-style: dashed; }
+
+.hero-copy { display: grid; justify-items: center; gap: 1.25rem; max-width: 62rem; }
+.hero h1 {
+  font-size: clamp(2.4rem, 6.5vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+.lede { max-width: 38rem; color: var(--muted); font-size: 1.1rem; }
+.lede b { font-weight: 600; }
+
+/* The changing last words of the heading */
+.rotator {
+  display: block;      /* its own line, so changing words never reflow the heading */
+  color: var(--primary-ink);
+  perspective: 600px;
+}
+.rotator.out { animation: word-out 0.35s ease-in forwards; }
+.rotator.in { animation: word-in 0.7s var(--ease-out); }
+@keyframes word-out { to { opacity: 0; filter: blur(6px); transform: rotateX(80deg) translateY(-0.2em); } }
+@keyframes word-in { from { opacity: 0; filter: blur(6px); transform: rotateX(-70deg) translateY(0.3em) scale(1.15); } }
+
+.hero-form { width: 100%; max-width: 34rem; text-align: left; }
+
+/* ---------- upload card ---------- */
 .upload {
   display: grid;
-  gap: 0.9rem;
-  padding: 1.25rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1.5rem;
+  box-shadow: inset 0 1px 0 var(--highlight), var(--shadow-lg);
 }
-.field span { display: block; font-weight: 600; margin-bottom: 0.35rem; }
-.field input { font: inherit; max-width: 100%; }
-.option { color: var(--muted); }
-.option input { margin-right: 0.4rem; }
 
-button {
-  justify-self: start;
-  font: 600 1rem var(--text);
-  padding: 0.6rem 1.2rem;
-  color: var(--surface);
-  background: var(--ink);
-  border: 0;
+.dropzone {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 2rem 1rem 1.75rem;
+  text-align: center;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 1rem;
+  background: var(--card-2);
+  color: var(--muted);
+  transition: border-color 0.25s, background-color 0.25s, box-shadow 0.25s;
+}
+.drop-icon {
+  display: grid; place-items: center;
+  width: 3rem; height: 3rem; margin-bottom: 0.4rem;
+  border-radius: 0.9rem;
+  background: var(--card); border: 1px solid var(--border);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  transition: transform 0.4s var(--spring), background-color 0.25s, color 0.25s;
+}
+.drop-title { font-weight: 600; color: var(--ink); }
+.drop-title u { text-decoration-color: var(--primary); text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.file-name { font-size: 0.85rem; overflow-wrap: anywhere; }
+
+/* The real input sits on top of the drop zone, invisible, so it gets clicks and drops */
+.dropzone input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+.dropzone:hover, .dropzone.dragging {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 6%, var(--card-2));
+}
+.dropzone:hover .drop-icon { transform: translateY(-3px); }
+.dropzone.dragging { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 18%, transparent); }
+.dropzone.dragging .drop-icon { transform: translateY(-6px) scale(1.08); background: var(--primary); color: var(--on-primary); }
+.dropzone:focus-within { outline: 2px solid var(--primary); outline-offset: 3px; }
+.dropzone.has-file { border-style: solid; border-color: var(--safe); }
+.dropzone.has-file .drop-icon { background: var(--safe); color: #fff; border-color: transparent; }
+.dropzone.has-file .file-name { color: var(--ink); font-weight: 600; }
+.dropzone.wrong-file { border-color: var(--malicious); }
+.dropzone.wrong-file .file-name { color: var(--malicious-ink); font-weight: 600; }
+
+.hint { font-size: 0.8rem; color: var(--muted); text-align: center; }
+
+/* A checkbox styled as an on/off switch */
+.switch {
+  display: flex; gap: 0.85rem; align-items: center;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
   cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
 }
-button:hover { background: var(--focus); }
+.switch:hover { background: var(--card-2); }
+.switch:has(input:checked) { border-color: color-mix(in srgb, var(--primary) 50%, transparent); }
+.switch input { position: absolute; opacity: 0; pointer-events: none; }
+.track {
+  order: 2; margin-left: auto;
+  flex: none; position: relative;
+  width: 2.6rem; height: 1.5rem;
+  border-radius: 999px;
+  background: var(--border-strong);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.15);
+  transition: background-color 0.25s;
+}
+.track::after {
+  content: ""; position: absolute; top: 0.15rem; left: 0.15rem;
+  width: 1.2rem; height: 1.2rem; border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: transform 0.45s var(--spring);
+}
+.switch input:checked + .track { background: var(--primary); }
+.switch input:checked + .track::after { transform: translateX(1.1rem); }
+.switch input:focus-visible + .track { outline: 2px solid var(--primary); outline-offset: 3px; }
+.switch-text { display: grid; line-height: 1.4; }
+.switch-text span { font-weight: 600; font-size: 0.95rem; }
+.switch-text small { color: var(--muted); font-size: 0.8rem; }
 
-.error { margin-top: 1rem; color: var(--malicious); font-weight: 600; }
+/* The main button: lime, with a light sweep across it on hover */
+.btn-primary {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  height: 3rem; padding: 0 1.25rem;
+  font: 600 1rem var(--sans);
+  color: var(--on-primary);
+  background: var(--primary);
+  border: 0; border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 6px 20px -8px color-mix(in srgb, var(--primary) 80%, transparent);
+  cursor: pointer;
+  transition: box-shadow 0.3s, transform 0.2s;
+}
+.btn-primary::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.45) 50%, transparent 70%);
+  translate: -100% 0;
+  transition: translate 0.8s var(--ease-out);
+}
+.btn-primary:hover { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 10px 28px -8px var(--primary); }
+.btn-primary:hover::after { translate: 100% 0; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary .icon { transition: transform 0.3s var(--spring); }
+.btn-primary:hover .icon { transform: translateX(3px); }
+.btn-primary:disabled { cursor: progress; opacity: 0.7; }
 
-/* ---------- the verdict: the one bold thing on the page ---------- */
-.result {
+/* Progress: hidden until the form is sent, then it replaces the button */
+.progress { display: none; }
+.upload.busy .btn-primary { display: none; }
+.upload.busy .progress { display: grid; gap: 0.6rem; padding: 0.4rem 0.2rem; }
+.progress-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; perspective: 600px; }
+.progress-label { font-weight: 600; font-size: 0.95rem; }
+.progress-label.in { animation: word-in 0.6s var(--ease-out); }
+.progress-time { font: 0.85rem var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.bar {
+  height: 0.75rem; border-radius: 999px; overflow: hidden;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.12);
+}
+.bar span {
+  display: block; width: 40%; height: 100%; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--primary) 30%, color-mix(in srgb, var(--primary) 50%, #fff) 50%, var(--primary) 70%, transparent);
+  animation: slide 1.6s ease-in-out infinite;
+}
+@keyframes slide { from { translate: -100% 0; } to { translate: 250% 0; } }
+
+/* ---------- error alert ---------- */
+.alert {
+  display: flex; gap: 0.75rem; align-items: flex-start;
+  padding: 0.8rem 0.95rem;
+  color: var(--malicious-ink);
+  background: color-mix(in srgb, var(--malicious) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--malicious) 35%, transparent);
+  border-radius: var(--radius-md);
+  animation: shake 0.5s var(--ease-out);
+}
+.alert p { color: var(--ink); font-size: 0.92rem; }
+@keyframes shake { 20%, 60% { translate: -5px 0; } 40%, 80% { translate: 5px 0; } }
+
+/* ---------- home page sections ---------- */
+.section { padding: 4rem 0 0; display: grid; gap: 0.9rem; }
+.section > h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); max-width: 30rem; margin-bottom: 1.25rem; }
+
+.steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+}
+.step { position: relative; display: grid; gap: 0.5rem; align-content: start; padding: 1.25rem; transition: border-color 0.3s, translate 0.4s var(--spring); }
+.step:hover { border-color: color-mix(in srgb, var(--primary) 50%, transparent); translate: 0 -3px; }
+.step-num { position: absolute; top: 1.15rem; right: 1.25rem; font: 600 0.75rem var(--mono); color: var(--muted); }
+.step .tile { margin-bottom: 0.5rem; }
+.step:hover .tile { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+.step h3 { font-size: 1.1rem; letter-spacing: -0.02em; }
+.step p { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+
+/* Bento grid: cards of different sizes fitted together */
+.bento { display: grid; gap: 0.75rem; grid-template-columns: repeat(3, 1fr); }
+.bento > .card { display: grid; gap: 0.6rem; align-content: start; padding: 1.5rem; overflow: hidden; }
+.bento-wide { grid-column: span 2; }
+.bento h3 { font-size: 1.15rem; letter-spacing: -0.02em; }
+.bento p { color: var(--muted); font-size: 0.92rem; line-height: 1.5; }
+@media (max-width: 56rem) { .bento { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 36rem) { .bento { grid-template-columns: 1fr; } .bento-wide { grid-column: auto; } }
+
+/* Two rows of red-flag pills scrolling in opposite directions */
+.marquee {
+  display: grid; gap: 0.6rem; margin: 0.75rem -1.5rem 0;
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee-row { display: flex; gap: 0.6rem; width: max-content; animation: marquee 40s linear infinite; }
+.marquee-row.reverse { animation-direction: reverse; }
+.marquee:hover .marquee-row { animation-play-state: paused; }
+@keyframes marquee { to { translate: calc(-50% - 0.3rem) 0; } }
+.flag {
+  padding: 0.4rem 0.85rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--card-2);
+  font-size: 0.85rem; white-space: nowrap;
+}
+.flag::before { content: ""; display: inline-block; width: 0.4rem; height: 0.4rem; margin-right: 0.5rem;
+                border-radius: 50%; background: var(--malicious); vertical-align: 0.1em; }
+.flag:nth-child(3n + 2)::before { background: var(--suspicious); }
+
+.bento .stat { font-size: 4rem; font-weight: 700; letter-spacing: -0.05em; line-height: 1; color: var(--ink); }
+.bento .stat::after { content: ""; display: block; height: 4px; width: 86%; margin-top: 0.75rem; border-radius: 4px;
+               background: linear-gradient(90deg, var(--primary) 0 calc(100% - 2px), transparent 0); }
+
+.facts { list-style: none; margin: 0.25rem 0 0; padding: 0; display: grid; gap: 0.5rem; color: var(--muted); font-size: 0.92rem; }
+.facts li { display: flex; align-items: baseline; gap: 0.6rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+.facts b { min-width: 2.5rem; font-size: 1.4rem; color: var(--ink); letter-spacing: -0.03em; }
+
+.bento .hash { margin-top: 0.4rem; padding: 0.55rem 0.75rem; border-radius: 0.6rem; background: var(--card-2);
+        border: 1px solid var(--border); font: 0.8rem var(--mono); color: var(--primary-ink); }
+
+/* The Safe / Suspicious / Malicious scale. Each segment's track is a light
+   step of its own colour; the active one is filled in on the result page. */
+.scale, .meter-track { display: flex; gap: 2px; height: 0.6rem; margin-top: 0.5rem; }
+.seg { flex: 1; border-radius: 4px; }
+.seg.safe { background: var(--safe); }
+.seg.suspicious { background: var(--suspicious); }
+.seg.malicious { background: var(--malicious); }
+.scale-legend { list-style: none; margin: 0.25rem 0 0; padding: 0; display: grid; gap: 0.35rem; font-size: 0.9rem; }
+.scale-legend li { display: flex; align-items: center; gap: 0.55rem; }
+.scale-legend small { margin-left: auto; font: 0.8rem var(--mono); color: var(--muted); }
+.key { width: 0.65rem; height: 0.65rem; border-radius: 3px; }
+.key.safe { background: var(--safe); }
+.key.suspicious { background: var(--suspicious); }
+.key.malicious { background: var(--malicious); }
+
+/* ---------- the verdict: the one bold thing on the result page ---------- */
+.verdict {
   --verdict: var(--muted);
-  margin-top: 3rem;
-  padding-left: 1.5rem;
-  border-left: 6px solid var(--verdict);   /* the "line" */
+  --verdict-ink: var(--ink);
+  position: relative; overflow: hidden; isolation: isolate;
+  display: grid; gap: 1.1rem;
+  margin-top: 2.5rem;
+  padding: 1.5rem;
+  border-color: color-mix(in srgb, var(--verdict) 35%, var(--border));
+  scroll-margin-top: 5rem;
+  animation: rise 0.9s var(--ease-out) both;
 }
-.result.safe { --verdict: var(--safe); }
-.result.suspicious { --verdict: var(--suspicious); }
-.result.malicious { --verdict: var(--malicious); }
+.verdict.safe { --verdict: var(--safe); --verdict-ink: var(--safe-ink); --seg: 0; --lo: 0; --span: 2; }
+.verdict.suspicious { --verdict: var(--suspicious); --verdict-ink: var(--suspicious-ink); --seg: 1; --lo: 2; --span: 4; }
+.verdict.malicious { --verdict: var(--malicious); --verdict-ink: var(--malicious-ink); --seg: 2; --lo: 6; --span: 6; }
 
-.result .meta { margin: 0; color: var(--muted); font-size: 0.9rem; }
-.result h2 {
-  margin: 0.1rem 0 0.5rem;
-  font-size: clamp(3.5rem, 12vw, 6.5rem);
-  font-weight: 700;
-  color: var(--verdict);
+/* Glow in the verdict colour over a dot grid */
+.verdict-bg {
+  position: absolute; inset: 0; z-index: -1;
+  background:
+    radial-gradient(ellipse 60% 90% at 100% 0%, color-mix(in srgb, var(--verdict) 22%, transparent), transparent 70%),
+    radial-gradient(circle, var(--dot) 1px, transparent 1.5px) 0 0 / 22px 22px;
 }
-.advice { margin: 0 0 1.25rem; font-size: 1.15rem; max-width: 36rem; }
-.subject { margin: 0 0 1.5rem; overflow-wrap: anywhere; }
-.subject span { color: var(--muted); margin-right: 0.4rem; }
 
-.result h3, .evidence h3 { font-size: 1.35rem; margin: 0 0 0.6rem; }
+.verdict-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.verdict .eyebrow { color: var(--verdict-ink); }
+.verdict .eyebrow .dot { background: var(--verdict); box-shadow: none; position: relative; }
+.verdict .eyebrow .dot::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--verdict);
+  animation: ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ping { 75%, 100% { transform: scale(2.6); opacity: 0; } }
 
-.reasons { list-style: none; margin: 0; padding: 0; }
+.file-chip {
+  display: inline-flex; align-items: center; gap: 0.45rem; min-width: 0; max-width: 100%;
+  padding: 0.3rem 0.7rem; border-radius: 999px;
+  border: 1px solid var(--border); background: color-mix(in srgb, var(--card) 70%, transparent);
+  font: 0.8rem var(--mono); color: var(--muted); overflow-wrap: anywhere;
+}
+.file-chip .icon { width: 0.95rem; height: 0.95rem; }
+
+.verdict-main { display: flex; align-items: center; gap: 1rem 1.25rem; flex-wrap: wrap; }
+.verdict-icon {
+  display: grid; place-items: center; width: 4.5rem; height: 4.5rem; flex: none;
+  border-radius: 1.25rem;
+  color: var(--verdict-ink);
+  background: color-mix(in srgb, var(--verdict) 14%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--verdict) 35%, transparent);
+  box-shadow: 0 0 40px -6px color-mix(in srgb, var(--verdict) 55%, transparent);
+  animation: pop 0.8s var(--spring) 0.15s both;
+}
+.verdict-icon .icon { width: 2.25rem; height: 2.25rem; stroke-width: 1.6; }
+@keyframes pop { from { scale: 0.4; opacity: 0; rotate: -12deg; } }
+
+/* The verdict word, with a highlight that sweeps across it twice */
+.verdict h1 {
+  font-size: clamp(3.25rem, 11vw, 6.5rem);
+  font-weight: 750;
+  letter-spacing: -0.055em;
+  line-height: 0.95;
+  padding-bottom: 0.05em;
+  color: var(--verdict-ink);
+  background: linear-gradient(110deg, var(--verdict-ink) 40%, color-mix(in srgb, var(--verdict-ink) 35%, #fff) 50%, var(--verdict-ink) 60%) 100% 0 / 250% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2.4s ease-in-out 0.6s 2;
+}
+@keyframes shimmer { to { background-position: 0 0; } }
+
+.score { margin-left: auto; text-align: right; font-size: 2.75rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+.score small { display: block; font: 600 0.72rem var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+.advice { font-size: 1.15rem; max-width: 40rem; line-height: 1.5; }
+.subject { display: flex; gap: 0.75rem; align-items: baseline; flex-wrap: wrap; overflow-wrap: anywhere;
+           padding-top: 1rem; border-top: 1px solid var(--border); }
+.subject span { font: 600 0.72rem var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+/* The meter: the verdict's own segment is filled, the others fade back.
+   The marker lands inside that segment, further right for more points. */
+.meter { display: grid; gap: 0.45rem; }
+.meter-track { position: relative; height: 0.7rem; margin: 0.75rem 0 0; }
+.verdict .seg { opacity: 0.22; }
+.verdict.safe .seg.safe, .verdict.suspicious .seg.suspicious, .verdict.malicious .seg.malicious { opacity: 1; }
+.marker {
+  position: absolute; top: 50%;
+  left: calc((var(--seg) + clamp(0.08, (var(--score) - var(--lo) + 0.5) / var(--span), 0.94)) * 100% / 3);
+  width: 1.25rem; height: 1.25rem; translate: -50% -50%;
+  border-radius: 50%;
+  background: var(--card);
+  border: 4px solid var(--verdict);
+  box-shadow: 0 0 0 2px var(--card), 0 0 16px var(--verdict);
+  animation: slide-in 1.2s var(--ease-out) 0.3s both;
+}
+@keyframes slide-in { from { left: 0; } }
+.meter-labels { display: grid; grid-template-columns: repeat(3, 1fr); font: 0.75rem var(--mono); color: var(--muted); }
+.meter-labels span:nth-child(2) { text-align: center; }
+.meter-labels span:nth-child(3) { text-align: right; }
+
+/* ---------- reasons and evidence, side by side on wide screens ---------- */
+.result-grid { display: grid; gap: 1rem; margin-top: 1rem; grid-template-columns: 1fr; align-items: start; }
+@media (min-width: 60rem) { .result-grid { grid-template-columns: 1.1fr 1fr; } }
+.panel { padding: 1.5rem; display: grid; gap: 1rem; }
+.panel h2 { font-size: 1.4rem; letter-spacing: -0.03em; }
+.panel.safe { --verdict: var(--safe); --verdict-ink: var(--safe-ink); }
+.panel.suspicious { --verdict: var(--suspicious); --verdict-ink: var(--suspicious-ink); }
+.panel.malicious { --verdict: var(--malicious); --verdict-ink: var(--malicious-ink); }
+
+.reasons { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
 .reasons li {
-  display: flex;
-  gap: 0.75rem;
-  align-items: baseline;
-  padding: 0.5rem 0;
-  border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.85rem; align-items: start;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: var(--card-2);
+  transition: border-color 0.25s, translate 0.35s var(--spring);
 }
+.reasons li:hover { border-color: color-mix(in srgb, var(--verdict) 45%, transparent); translate: 3px 0; }
 .points {
-  flex: none;
-  min-width: 1.6rem;
-  font: 700 1.05rem var(--display);
-  color: var(--verdict);
+  grid-row: span 2;
+  display: grid; place-items: center; min-width: 2.6rem; height: 2.6rem;
+  border-radius: 0.7rem;
+  font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--verdict-ink);
+  background: color-mix(in srgb, var(--verdict) 14%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--verdict) 30%, transparent);
+}
+.reason-text { overflow-wrap: anywhere; min-width: 0; font-size: 0.95rem; line-height: 1.45; }
+.pips { display: flex; gap: 3px; }
+.pips i { width: 1rem; height: 0.3rem; border-radius: 2px; background: var(--border-strong); }
+.pips i.on { background: var(--verdict); }
+
+.none { display: flex; align-items: center; gap: 0.5rem; color: var(--muted); }
+.none .icon { color: var(--safe-ink); }
+
+/* ---------- the evidence accordion, Watermelon's "split" style ----------
+   Closed items are joined into one stack. An open item pulls away from its
+   neighbours and rounds all its corners; the neighbours round off to meet it. */
+.accordion { --r: var(--radius-md); display: grid; }
+.accordion details {
+  border: 1px solid var(--border);
+  border-top-width: 0;
+  background: var(--card-2);
+  transition: margin 0.45s var(--spring), border-radius 0.45s var(--spring);
+}
+.accordion details:first-child { border-top-width: 1px; border-radius: var(--r) var(--r) 0 0; }
+.accordion details:last-child { border-radius: 0 0 var(--r) var(--r); }
+.accordion details[open] { margin: 0.6rem 0; border-top-width: 1px; border-radius: var(--r); background: var(--card); }
+.accordion details[open]:first-child { margin-top: 0; }
+.accordion details[open]:last-child { margin-bottom: 0; }
+.accordion details[open] + details { border-top-width: 1px; border-top-left-radius: var(--r); border-top-right-radius: var(--r); }
+.accordion details:has(+ details[open]) { border-bottom-left-radius: var(--r); border-bottom-right-radius: var(--r); }
+
+summary {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer; font-weight: 600; list-style: none;
+}
+summary::-webkit-details-marker { display: none; }
+summary .tile { width: 2rem; height: 2rem; border-radius: 0.55rem; background: var(--card); }
+summary .chevron { margin-left: auto; color: var(--muted); transition: transform 0.4s var(--spring); }
+details[open] > summary .chevron { transform: rotate(180deg); }
+details[open] > summary .tile { background: var(--primary); color: var(--on-primary); border-color: transparent; }
+
+/* Slide the content open where the browser supports it; elsewhere it just appears */
+details::details-content {
+  block-size: 0; overflow: clip;
+  transition: block-size 0.45s var(--ease-out), content-visibility 0.45s allow-discrete;
+}
+details[open]::details-content { block-size: auto; }
+
+details > .none, details > ul { margin: 0; padding: 0 0.85rem 0.85rem; }
+.items { list-style: none; display: grid; gap: 0.35rem; font: 0.82rem/1.5 var(--mono); }
+.items li { overflow-wrap: anywhere; padding: 0.35rem 0.6rem; border-radius: 0.5rem; background: var(--card-2); }
+.items small { display: block; font-family: var(--sans); color: var(--muted); }
+.items .sha { font-family: var(--mono); font-size: 0.75rem; }
+
+.vt { list-style: none; display: grid; gap: 0.35rem; }
+.vt li { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+         padding: 0.45rem 0.6rem; border-radius: 0.5rem; background: var(--card-2); }
+.vt-kind { font: 600 0.65rem var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+           padding: 0.1rem 0.4rem; border: 1px solid var(--border); border-radius: 0.35rem; }
+.vt .value { flex: 1; font: 0.82rem var(--mono); overflow-wrap: anywhere; min-width: 8rem; }
+
+/* Copy buttons, added by hookline.js next to anything marked data-copy */
+[data-copy] { position: relative; }
+.copy-btn {
+  float: right; margin: -0.15rem -0.3rem 0 0.5rem;
+  display: grid; place-items: center; width: 1.75rem; height: 1.75rem;
+  border: 1px solid var(--border); border-radius: 0.45rem;
+  background: var(--card); color: var(--muted); cursor: pointer;
+  opacity: 0; transition: opacity 0.2s, color 0.2s;
+}
+.copy-btn .icon { width: 0.9rem; height: 0.9rem; grid-area: 1 / 1; transition: transform 0.35s var(--spring), opacity 0.2s; }
+.copy-btn .done { transform: scale(0); opacity: 0; color: var(--safe-ink); }
+.copy-btn.copied .copy { transform: scale(0); opacity: 0; }
+.copy-btn.copied .done { transform: none; opacity: 1; }
+li:hover > .copy-btn, [data-copy]:hover > .copy-btn, .copy-btn:focus-visible, .copy-btn.copied { opacity: 1; }
+@media (hover: none) { .copy-btn { opacity: 1; } }
+
+/* ---------- "analyse another" at the bottom of the result page ---------- */
+.again { display: grid; justify-items: center; gap: 1.25rem; margin-top: 4rem; }
+.again h2 { font-size: 1.6rem; }
+.again .upload { width: 100%; max-width: 34rem; }
+
+/* ---------- footer ---------- */
+.footer {
+  display: grid; gap: 0.35rem; justify-items: center; text-align: center;
+  padding: 2rem 1.25rem 2.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.82rem; color: var(--muted);
+}
+.footer p:first-child { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--ink); font-weight: 600; }
+.footer .icon { width: 1rem; height: 1rem; color: var(--primary-ink); }
+
+/* ---------- entrance animations ----------
+   Things fade up as the page loads. Lower down, they wait until scrolled into
+   view (in browsers that support scroll-driven animations). No JavaScript needed. */
+.reveal { animation: rise 0.9s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 70ms + 100ms); }
+.hero-copy > .reveal:nth-child(2) { --i: 1; }
+.hero-copy > .reveal:nth-child(3) { --i: 2; }
+.hero-form.reveal { --i: 3; }
+@keyframes rise { from { opacity: 0; translate: 0 18px; filter: blur(4px); } }
+@supports (animation-timeline: view()) {
+  .section .reveal, .result-grid .reveal {
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+    animation-delay: 0s;
+  }
 }
 
-/* ---------- evidence: quiet, collapsed by default ---------- */
-.evidence { margin-top: 3rem; }
-details { border-top: 1px solid var(--line); padding: 0.6rem 0; }
-details:last-child { border-bottom: 1px solid var(--line); }
-summary { cursor: pointer; font-weight: 600; }
-.count { color: var(--muted); font-weight: 400; margin-left: 0.3rem; }
-.items { margin: 0.5rem 0 0; padding-left: 1.1rem; font-family: var(--mono); font-size: 0.85rem; }
-.items li { margin: 0.3rem 0; overflow-wrap: anywhere; }
-.items small { display: block; font-family: var(--text); color: var(--muted); }
-.none { color: var(--muted); margin: 0.4rem 0 0; }
+/* ---------- respect people who turn off animations ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .bar span { width: 100%; opacity: 0.6; }
+  .marquee-row { flex-wrap: wrap; width: auto; }
+  .marquee-row:nth-child(2) { display: none; }
+  .marquee { mask-image: none; margin-inline: 0; }
+}
+
+@media print {
+  .nav, .again, .footer, .copy-btn { display: none; }
+  .reveal { animation: none; }
+}
+
+@media (max-width: 40rem) {
+  .hero { padding-top: 3.5rem; }
+  .verdict, .panel { padding: 1.15rem; }
+  .verdict-icon { width: 3.5rem; height: 3.5rem; }
+  .verdict-icon .icon { width: 1.75rem; height: 1.75rem; }
+  .meter-labels { font-size: 0.68rem; }
+}
