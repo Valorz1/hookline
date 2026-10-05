@@ -1,10 +1,9 @@
 from collections import Counter
 from pathlib import Path
 
-from analyser.checks import run_checks
-from analyser.observables import extract_observables
+from analyser.pipeline import analyse
 from analyser.parser import read_email
-from analyser.verdict import decide
+
 
 
 def expected(path):
@@ -20,7 +19,7 @@ results = Counter()
 for path in sorted(Path("samples").rglob("*.eml")):
     try:
         parsed = read_email(path)
-        verdict = decide(run_checks(parsed, extract_observables(parsed)))["verdict"]
+        verdict = analyse(parsed)["outcome"]["verdict"]
     except Exception as error:
         # One malformed email shouldn't stop the rest from being checked
         print(f"ERROR   {path.name}: {error}")

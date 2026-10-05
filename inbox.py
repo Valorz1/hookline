@@ -18,10 +18,8 @@ from email.parser import BytesParser
 
 from dotenv import load_dotenv
 
-from analyser.checks import run_checks
-from analyser.observables import extract_observables
 from analyser.parser import parse_email_bytes
-from analyser.verdict import decide
+from analyser.pipeline import analyse
 
 load_dotenv()
 IMAP_HOST = os.getenv("IMAP_HOST", "imap.gmail.com")
@@ -71,14 +69,6 @@ def mark_read(numbers):
             imap.store(number, "+FLAGS", "\\Seen")
 
 
-def analyse(raw):
-    """The same pipeline as main.py, without VirusTotal to keep it quick."""
-    parsed = parse_email_bytes(raw)
-    found = extract_observables(parsed)
-    outcome = decide(run_checks(parsed, found))
-    return parsed, outcome
-
-
 def main():
     if not IMAP_USER or not IMAP_PASSWORD:
         print("Add IMAP_USER and IMAP_PASSWORD to your .env file first.")
@@ -108,7 +98,8 @@ def main():
             continue
 
         for email_bytes in emails:
-            parsed, outcome = analyse(email_bytes)
+            parsed = parse_email_bytes(email_bytes)
+            outcome = analyse(parsed)["outcome"]
             print(f"   {outcome['verdict'].upper():<11} ({outcome['score']} points)  {parsed['subject']}")
             for reason in outcome["reasons"][:3]:
                 print(f"      - {reason['detail']}")

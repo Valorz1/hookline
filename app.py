@@ -1,10 +1,7 @@
 from flask import Flask, render_template, request
 
 from analyser.parser import parse_email_bytes
-from analyser.observables import extract_observables
-from analyser.checks import run_checks
-from analyser.virustotal import choose_targets, lookup
-from analyser.verdict import decide, vt_findings
+from analyser import pipeline
 
 app = Flask(__name__)
 
@@ -27,22 +24,16 @@ def analyse():
 
     # The file is read in memory and never saved to disk
     parsed = parse_email_bytes(upload.read())
-    found = extract_observables(parsed)
-    findings = run_checks(parsed, found)
-
-    vt_results = []
-    if request.form.get("virustotal"):
-        for kind, value in choose_targets(found, parsed["attachments"]):
-            vt_results.append(lookup(kind, value))
-
-    outcome = decide(findings + vt_findings(vt_results))
+    # pipeline.analyse, not analyse: this route function is ALSO called
+    # analyse, and a plain analyse() here would call the route itself
+    result = pipeline.analyse(parsed, use_virustotal=bool(request.form.get("virustotal")))
     return render_template(
         "result.html",
         filename=upload.filename,
         parsed=parsed,
-        found=found,
-        outcome=outcome,
-        vt_results=vt_results,
+        found=result["found"],
+        outcome=result["outcome"],
+        vt_results=result["vt_results"],
     )
 
 
