@@ -9,8 +9,7 @@
   {% elif r.status == "found" and (r.malicious or r.suspicious) %}
     <span class="badge warn"><i></i>{{ r.malicious + r.suspicious }} of {{ r.engines }} wary</span>
   {% elif r.status == "found" %}
-    <span class="badge good"><i></i>Clean</span>
-  {% elif r.status == "not_found" %}
+    <span class="badge good"><i></i>No detections</span>  {% elif r.status == "not_found" %}
     <span class="badge">Not seen before</span>
   {% else %}
     <span class="badge" title="{{ r.detail }}">Lookup failed</span>
