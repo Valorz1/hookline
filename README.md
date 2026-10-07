@@ -2,11 +2,9 @@
 
 A phishing email analyser. Give it a suspicious email and HookLine pulls out the links, domains, IP addresses and attachments, checks for red flags, looks the evidence up on VirusTotal, and gives a verdict, **Safe**, **Suspicious** or **Malicious**, explaining exactly why.
 
-Use it three ways: from the **terminal**, in a **web page**, or by forwarding emails to a **reporting inbox**.
+Use it three ways: from the **terminal**, in a **web page** with live progress, or by forwarding emails to a **reporting inbox**.
 
 ![HookLine's result page showing a Malicious verdict](docs/screenshot.png)
-
-> 🚧 **Nearly there.** The analysis engine, web interface and reporting inbox all work. Live progress updates in the browser are next. See the roadmap below.
 
 ## How it works
 
@@ -15,6 +13,8 @@ Use it three ways: from the **terminal**, in a **web page**, or by forwarding em
 3. **Check**: look for 13 red flags and score each one by how strong the evidence is
 4. **Look up**: optionally ask VirusTotal whether the attachments, IPs, domains and links are known to be malicious
 5. **Verdict**: add up the evidence and decide: Safe (0–1 points), Suspicious (2–5) or Malicious (6+, or if 5+ VirusTotal engines agree)
+
+All three ways of using HookLine call the same `analyse()` function in `analyser/pipeline.py`, so they always give the same verdict.
 
 ## Red flags HookLine checks for
 
@@ -40,9 +40,10 @@ HookLine checks attachment fingerprints (SHA-256 hashes), IP addresses, domains 
 
 It's designed around the free API's limits (4 lookups a minute, 500 a day):
 
-- **Rate limiting**: waits 15 seconds between lookups
+- **Rate limiting**: waits 15 seconds between lookups, even when several analyses run at once
 - **Cache**: every answer is saved in `vt_cache.json`, so nothing is looked up twice
 - **Allowlist**: skips well-known infrastructure like Google Fonts, and webmail domains like gmail.com
+- **No images**: skips pictures shown inside the email, since nobody clicks them
 - **Priority**: attachments first, then IPs, domains and links, up to 8 lookups per email
 - **No double counting**: one malicious website counts once, however many links point to it
 
@@ -76,10 +77,9 @@ Then create a file called `.env` in the project folder:
 VT_API_KEY=your_virustotal_key
 IMAP_HOST=imap.gmail.com
 IMAP_USER=your.reporting.inbox@gmail.com
-IMAP_PASSWORD=your_16_letter_app_password
 ```
 
-The VirusTotal key is under your VirusTotal profile → **API key**. The `IMAP_` lines are only needed for the reporting inbox (see below). `.env` is in `.gitignore`, so these are never uploaded.
+The VirusTotal key is under your VirusTotal profile → **API key**. The `IMAP_` lines are only needed for the reporting inbox. `.env` is in `.gitignore`, so it's never uploaded.
 
 ## Use it from the terminal
 
@@ -91,13 +91,13 @@ python main.py samples/real/sample-1020.eml
 `make_samples.py` creates 60 safe, made-up test emails. `main.py` analyses one and shows everything it found. Here it is on a real phishing email pretending to be from Costco:
 
 ```
+VIRUSTOTAL (about 15 seconds per lookup)
+   domain thebandalisty.com  ->  11 malicious, 1 suspicious (of 91)
+   ...
+
 RED FLAGS (2 found, 4 points)
    [1] SPF is missing or only a soft fail
    [3] DMARC failed: the From domain didn't authorise this email (likely spoofed)
-
-VIRUSTOTAL (6 lookups, about 15 seconds each)
-   domain thebandalisty.com  ->  11 malicious, 1 suspicious (of 91)
-   ...
 
 ==================================================
 VERDICT: MALICIOUS
@@ -117,6 +117,8 @@ python app.py
 
 Then open http://127.0.0.1:5000, drop in an `.eml` file, and choose whether to check VirusTotal. To get an `.eml` file in Gmail, open the email, click the ⋮ menu, then **Download message**.
 
+The quick checks take under a second, so the verdict appears straight away. With VirusTotal on, each lookup then fills in **live** as it finishes, using Server-Sent Events, and the verdict updates when the last one arrives.
+
 ## Use it as a reporting inbox
 
 People forward suspicious emails **as an attachment** to a dedicated Gmail inbox, and HookLine checks them:
@@ -126,21 +128,26 @@ python inbox.py          analyse unread reports, leave them unread
 python inbox.py --mark   analyse them, then mark them as read
 ```
 
-To set it up, create a separate Gmail account for reports, turn on 2-Step Verification, then create an **app password** at myaccount.google.com/apppasswords and put it in `.env`.
+HookLine signs in with **OAuth**, so no password is stored. To set it up:
 
-Emails must be forwarded **as an attachment** (in Gmail: ⋮ → **Forward as attachment**). A normal forward throws away the original headers, such as the real sender and the SPF/DKIM/DMARC results, which most of the checks rely on.
+1. Create a separate Gmail account for reports.
+2. In [Google Cloud Console](https://console.cloud.google.com), create a project, enable the **Gmail API**, and set up the OAuth consent screen (External, Testing, with the reporting account as a test user and the `https://mail.google.com/` scope).
+3. Create an OAuth client of type **Desktop app**, download its JSON, and save it as `credentials.json` in the project folder.
+4. Run `python inbox.py`. Your browser opens Google's sign-in page once; after that, the token in `token.json` is reused.
 
-It's also worth adding a Gmail filter on the reporting inbox so emails with attachments are never sent to Spam, or the reports can disappear.
+While the Google project is in Testing mode, the token expires after 7 days, and HookLine opens the sign-in page again.
+
+Emails must be forwarded **as an attachment** (in Gmail: ⋮ → **Forward as attachment**). A normal forward throws away the original headers, such as the real sender and the SPF/DKIM/DMARC results, which most of the checks rely on. It's also worth adding a Gmail filter on the reporting inbox so emails with attachments are never sent to Spam.
 
 ## Security notes
 
 HookLine handles malicious emails, so it's built to be careful with them:
 
 - **Nothing is saved.** Uploaded emails are read in memory and discarded.
-- **Nothing from the email runs.** The email's own HTML is never displayed, and everything shown on the page is escaped, so code hidden in a subject line can't run in your browser.
+- **Nothing from the email runs.** The email's own HTML is never displayed, and everything shown on the page, including live updates, is escaped by the templates, so code hidden in a subject line can't run in your browser.
 - **Attachments are never opened or uploaded.** Only their SHA-256 fingerprints are checked.
-- **Secrets stay in `.env`**, which is never committed.
-- **The reporting inbox uses an app password** on a dedicated account. That's simpler than OAuth, Google's modern sign-in method, but less secure, which is why the account should be used only for reports. OAuth is a planned improvement.
+- **No mailbox password is stored.** The reporting inbox uses OAuth; the token can be revoked at any time from the Google Account's security settings.
+- **Secrets stay out of Git.** `.env`, `credentials.json` and `token.json` are all in `.gitignore`.
 - **The web server is for local use.** It runs in Flask's debug mode, which must never be exposed to a network.
 
 ## Roadmap
@@ -154,27 +161,29 @@ HookLine handles malicious emails, so it's built to be careful with them:
 - [x] Accuracy measurement on real phishing samples
 - [x] Web interface
 - [x] Fetch reported emails from a mailbox (IMAP)
-- [ ] Live progress updates in the browser
+- [x] Live progress updates in the browser
 - [x] One shared analysis function for the terminal, web page and inbox
-- [ ] OAuth sign-in for the reporting inbox
+- [x] OAuth sign-in for the reporting inbox
 
 ## Project structure
 
 ```
 hookline/
 ├── analyser/
-│   ├── parser.py        read the emaild
+│   ├── parser.py        read the email
 │   ├── observables.py   find links, domains, IPs and email addresses
 │   ├── checks.py        look for red flags
 │   ├── virustotal.py    VirusTotal lookups with rate limiting and caching
-│   └── verdict.py       combine the evidence into a final verdict
+│   ├── verdict.py       combine the evidence into a final verdict
+│   └── pipeline.py      the one analyse() function everything uses
 ├── templates/
 │   ├── base.html        the parts every page shares
 │   ├── index.html       the home page
-│   └── result.html      the verdict, reasons and evidence
+│   ├── result.html      the result page
+│   └── _*.html          pieces re-sent live as VirusTotal results arrive
 ├── static/
 │   ├── app.css          styling
-│   └── hookline.js      file picker, drag and drop, progress
+│   └── hookline.js      file picker, drag and drop, live updates
 ├── samples/
 │   ├── fake/            60 generated test emails (30 phishing, 30 safe)
 │   └── real/            real phishing samples (not included, see below)
@@ -198,13 +207,11 @@ HookLine is also tested against real phishing samples from [Phishing Pot](https:
 ## Tech
 
 - **Python 3.14**
-- **Standard library**: `email`, `imaplib`, `re`, `hashlib`, `ipaddress`, `urllib`, `unicodedata`, `json`, `base64`, `collections`
-- **Packages**: `flask` (web interface), `requests` (VirusTotal API), `python-dotenv` (reads secrets from `.env`)
+- **Standard library**: `email`, `imaplib`, `re`, `html`, `hashlib`, `ipaddress`, `urllib`, `unicodedata`, `json`, `base64`, `collections`, `threading`, `queue`
+- **Packages**: `flask` (web interface), `requests` (VirusTotal API), `python-dotenv` (reads settings from `.env`), `google-auth-oauthlib` (OAuth sign-in)
 - **Threat intelligence**: VirusTotal public API
 - **Design**: interface inspired by [Watermelon UI](https://ui.watermelon.sh) (MIT)
 
 ## Author
 
 Built by [Valorz1](https://github.com/Valorz1)
-
-dfr

@@ -21,10 +21,23 @@ from dotenv import load_dotenv
 from analyser.parser import parse_email_bytes
 from analyser.pipeline import analyse
 
+from pathlib import Path
+
+from google.auth.exceptions import RefreshError
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+
+
 load_dotenv()
 IMAP_HOST = os.getenv("IMAP_HOST", "imap.gmail.com")
 IMAP_USER = os.getenv("IMAP_USER")
 IMAP_PASSWORD = os.getenv("IMAP_PASSWORD")
+
+# OAuth: Google's sign-in page gives us a token, so no password is stored
+SCOPES = ["https://mail.google.com/"]
+CREDENTIALS_FILE = Path("credentials.json")  # identifies the HookLine app to Google
+TOKEN_FILE = Path("token.json")              # the saved token; never commit this
 
 
 def attached_emails(report):
@@ -50,7 +63,7 @@ def fetch_unread():
     """
     messages = []
     with imaplib.IMAP4_SSL(IMAP_HOST) as imap:
-        imap.login(IMAP_USER, IMAP_PASSWORD)
+        sign_in(imap)
         imap.select("INBOX")
         _, data = imap.search(None, "UNSEEN")
         for number in data[0].split():
@@ -59,19 +72,56 @@ def fetch_unread():
             messages.append((number, msg_data[0][1]))
     return messages
 
+def get_access_token():
+    """Return a valid OAuth token, signing in through the browser if needed."""
+    creds = None
+    if TOKEN_FILE.exists():
+        creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+
+    if creds and creds.valid:
+        return creds.token
+
+    # Tokens only last about an hour, but a "refresh token" can get a new one
+    # without asking you again
+    if creds and creds.expired and creds.refresh_token:
+        try:
+            creds.refresh(Request())
+        except RefreshError:
+            # In Testing mode Google expires refresh tokens after 7 days
+            creds = None
+
+    if not creds or not creds.valid:
+        # Opens Google's sign-in page in your browser
+        flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_FILE), SCOPES)
+        creds = flow.run_local_server(port=0)
+
+    TOKEN_FILE.write_text(creds.to_json())
+    return creds.token
+
+
+def sign_in(imap):
+    """Sign in with OAuth if credentials.json exists, otherwise the app password."""
+    if CREDENTIALS_FILE.exists():
+        token = get_access_token()
+        # XOAUTH2 is Gmail's format for signing in to IMAP with a token
+        auth_string = f"user={IMAP_USER}\x01auth=Bearer {token}\x01\x01"
+        imap.authenticate("XOAUTH2", lambda _: auth_string.encode())
+    else:
+        imap.login(IMAP_USER, IMAP_PASSWORD)
+
 
 def mark_read(numbers):
     """Mark messages as read, so they aren't analysed again next time."""
     with imaplib.IMAP4_SSL(IMAP_HOST) as imap:
-        imap.login(IMAP_USER, IMAP_PASSWORD)
+        sign_in(imap)
         imap.select("INBOX")
         for number in numbers:
             imap.store(number, "+FLAGS", "\\Seen")
 
 
 def main():
-    if not IMAP_USER or not IMAP_PASSWORD:
-        print("Add IMAP_USER and IMAP_PASSWORD to your .env file first.")
+    if not IMAP_USER or not (CREDENTIALS_FILE.exists() or IMAP_PASSWORD):
+        print("Add IMAP_USER to .env, plus credentials.json or IMAP_PASSWORD.")
         return
 
     try:
