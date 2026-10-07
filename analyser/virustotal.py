@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import threading
 import time
 from pathlib import Path
 from urllib.parse import urlparse
@@ -29,6 +30,9 @@ CACHE_FILE = Path("vt_cache.json")
 
 
 _last_request = 0.0
+# The web app can run lookups in several threads at once. This lock makes them
+# take turns, so together they still stay under 4 requests a minute.
+_rate_lock = threading.Lock()
 
 def _load_cache():
     try:  
@@ -55,10 +59,11 @@ def is_allowlisted(domain):
 def _wait_for_rate_limit():
     """Sleep just long enough to stay under 4 requests a minute."""
     global _last_request
-    wait = SECONDS_BETWEEN_REQUESTS - (time.monotonic() - _last_request)
-    if wait > 0:
-        time.sleep(wait)
-    _last_request = time.monotonic()
+    with _rate_lock:
+        wait = SECONDS_BETWEEN_REQUESTS - (time.monotonic() - _last_request)
+        if wait > 0:
+            time.sleep(wait)
+        _last_request = time.monotonic()
 
 
 def _url_id(url):

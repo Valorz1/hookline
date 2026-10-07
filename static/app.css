@@ -556,6 +556,12 @@ b { font-weight: 600; }
 .score small { display: block; font: 600 0.72rem var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
 
 .advice { font-size: 1.15rem; max-width: 40rem; line-height: 1.5; }
+.live-note { display: inline-flex; align-items: center; gap: 0.5rem; justify-self: start;
+             padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid var(--border);
+             font-size: 0.85rem; color: var(--muted); }
+.live-note .dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--primary);
+                  animation: breathe 1.2s ease-in-out infinite; }
+.live-note.stopped .dot { background: var(--suspicious); animation: none; }
 .subject { display: flex; gap: 0.75rem; align-items: baseline; flex-wrap: wrap; overflow-wrap: anywhere;
            padding-top: 1rem; border-top: 1px solid var(--border); }
 .subject span { font: 600 0.72rem var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
@@ -664,6 +670,13 @@ details > .none, details > ul { margin: 0; padding: 0 0.85rem 0.85rem; }
 .vt-kind { font: 600 0.65rem var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
            padding: 0.1rem 0.4rem; border: 1px solid var(--border); border-radius: 0.35rem; }
 .vt .value { flex: 1; font: 0.82rem var(--mono); overflow-wrap: anywhere; min-width: 8rem; }
+
+/* Live VirusTotal: rows wait with a pulsing dot, then pop in as results land */
+.vt li.pending { color: var(--muted); }
+.vt li.pending .badge i { animation: breathe 1.2s ease-in-out infinite; }
+.vt li.arrived { animation: pop-row 0.5s var(--spring); }
+@keyframes breathe { 50% { opacity: 0.25; } }
+@keyframes pop-row { from { scale: 0.97; opacity: 0.4; } }
 
 /* Copy buttons, added by hookline.js next to anything marked data-copy */
 [data-copy] { position: relative; }

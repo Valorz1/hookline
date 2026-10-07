@@ -60,8 +60,7 @@ document.querySelectorAll(".upload").forEach(function (form) {
   input.addEventListener("change", showFile);
 
   // While the server works, swap the button for a progress bar with a timer.
-  // The steps are what HookLine does, in order. Without VirusTotal it's done
-  // in under a second; with it, nearly all the wait is VirusTotal.
+  // The steps are what HookLine does, in order.
   var timer = null;
   form.addEventListener("submit", function (event) {
     var file = input.files[0];
@@ -73,10 +72,9 @@ document.querySelectorAll(".upload").forEach(function (form) {
 
     var label = form.querySelector(".progress-label");
     var clock = form.querySelector(".progress-time");
-    var steps = ["Reading the email", "Pulling out links and domains", "Running 13 red-flag checks"];
-    steps.push(form.elements.virustotal.checked
-      ? "Asking VirusTotal, about 15 s per lookup"
-      : "Adding up the score");
+    // VirusTotal results arrive on the result page itself, so the wait here is short
+    var steps = ["Reading the email", "Pulling out links and domains",
+                 "Running 13 red-flag checks", "Adding up the score"];
 
     form.classList.add("busy");
     form.querySelector("button[type=submit]").disabled = true;
@@ -126,24 +124,29 @@ document.querySelectorAll(".rotator").forEach(function (rotator) {
   }, 2800);
 });
 
-// ---------- count the score up from zero ----------
-document.querySelectorAll("[data-count]").forEach(function (counter) {
+// ---------- count the score up (from zero, or from the old score) ----------
+function countUp(counter, from) {
   var target = Number(counter.dataset.count);
-  if (calm || !target) return;
+  from = from || 0;
+  if (calm || target === from) return;
+  counter.textContent = from;
   var start = performance.now();
   var duration = 1200;
   function tick(now) {
     var t = Math.min((now - start) / duration, 1);
     var eased = 1 - Math.pow(1 - t, 4);
-    counter.textContent = Math.round(target * eased);
+    counter.textContent = Math.round(from + (target - from) * eased);
     if (t < 1) requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
-});
+}
+document.querySelectorAll("[data-count]").forEach(function (counter) { countUp(counter); });
 
 // ---------- copy buttons for links, domains, hashes... ----------
-if (navigator.clipboard) {
-  document.querySelectorAll("[data-copy]").forEach(function (item) {
+// A function, so live VirusTotal rows can get buttons too
+function addCopyButtons(area) {
+  if (!navigator.clipboard) return;
+  area.querySelectorAll("[data-copy]").forEach(function (item) {
     var value = item.textContent.trim();
     var button = document.createElement("button");
     button.type = "button";
@@ -161,3 +164,59 @@ if (navigator.clipboard) {
     item.prepend(button);
   });
 }
+addCopyButtons(document);
+
+// ---------- live VirusTotal results ----------
+// The server pushes Server-Sent Events down one open connection: a "lookup"
+// for each result (as a ready-made <li>), then "done" with the new verdict.
+function htmlToElement(html) {
+  var holder = document.createElement("template");
+  holder.innerHTML = html.trim();
+  return holder.content.firstElementChild;
+}
+
+document.querySelectorAll("[data-stream]").forEach(function (list) {
+  var source = new EventSource(list.dataset.stream);
+
+  // Each result replaces the first row still marked "Checking…"
+  source.addEventListener("lookup", function (event) {
+    var row = htmlToElement(JSON.parse(event.data));
+    var pending = list.querySelector("li.pending");
+    if (pending) pending.replaceWith(row); else list.append(row);
+    row.classList.add("arrived");
+    addCopyButtons(row);
+  });
+
+  source.addEventListener("done", function (event) {
+    // Close it ourselves: otherwise EventSource reconnects when the server hangs up
+    source.close();
+    var data = JSON.parse(event.data);
+    var oldScore = Number(document.querySelector("#result [data-count]").dataset.count);
+
+    var verdict = htmlToElement(data.verdict);
+    document.getElementById("result").replaceWith(verdict);
+    document.getElementById("why-panel").replaceWith(htmlToElement(data.why));
+    document.title = data.title;
+    countUp(verdict.querySelector("[data-count]"), oldScore);
+  });
+
+  // "failed" is our own event (the analysis crashed); "error" is the browser's
+  // (the connection dropped). Either way, stop and say so.
+  function giveUp(message) {
+    source.close();
+    var note = document.querySelector(".live-note");
+    if (note) {
+      note.classList.add("stopped");
+      note.lastChild.textContent = message;
+    }
+    list.querySelectorAll("li.pending .badge").forEach(function (badge) {
+      badge.textContent = "Not checked";
+    });
+  }
+  source.addEventListener("failed", function () {
+    giveUp("VirusTotal checks stopped with an error. The verdict uses the quick checks only.");
+  });
+  source.addEventListener("error", function () {
+    giveUp("Lost the connection to HookLine. Analyse the email again for VirusTotal results.");
+  });
+});

@@ -1,0 +1,39 @@
+{# The verdict card. Rendered with the page, and again by app.py when the
+   last VirusTotal lookup arrives, so hookline.js can swap the new one in. #}
+{% set advice = {
+  "Safe": "No strong warning signs. If the email is unexpected, check with the sender another way before acting on it.",
+  "Suspicious": "Some warning signs. Don't click links or open attachments until you've confirmed it with the sender another way.",
+  "Malicious": "Strong evidence this is a scam. Don't click anything. Report it, then delete it."
+} %}
+{% set shield = {"Safe": "shield-check", "Suspicious": "shield-alert", "Malicious": "shield-x"} %}
+{% set kind = outcome.verdict | lower %}
+
+{# --score lets the CSS place the marker on the scale #}
+<section id="result" class="verdict card {{ kind }}" style="--score: {{ outcome.score }}" aria-labelledby="verdict">
+  <div class="verdict-bg" aria-hidden="true"></div>
+
+  <div class="verdict-head">
+    <span class="eyebrow"><span class="dot"></span>Verdict</span>
+    <span class="file-chip"><svg class="icon" aria-hidden="true"><use href="#mail"/></svg>{{ filename }}</span>
+  </div>
+
+  <div class="verdict-main">
+    <span class="verdict-icon"><svg class="icon" aria-hidden="true"><use href="#{{ shield[outcome.verdict] }}"/></svg></span>
+    <h1 id="verdict">{{ outcome.verdict }}</h1>
+    <p class="score"><span class="count" data-count="{{ outcome.score }}">{{ outcome.score }}</span> <small>points</small></p>
+  </div>
+
+  <p class="advice">{{ advice[outcome.verdict] }}</p>
+  {% if live %}
+    <p class="live-note" role="status"><span class="dot"></span>Still checking VirusTotal. This verdict may change.</p>
+  {% endif %}
+  <p class="subject"><span>Subject</span>{{ subject or "(no subject)" }}</p>
+
+  <div class="meter" aria-hidden="true">
+    <div class="meter-track">
+      <span class="seg safe"></span><span class="seg suspicious"></span><span class="seg malicious"></span>
+      <span class="marker"></span>
+    </div>
+    <div class="meter-labels"><span>Safe 0–1</span><span>Suspicious 2–5</span><span>Malicious 6+</span></div>
+  </div>
+</section>

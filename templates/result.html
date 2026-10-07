@@ -7,59 +7,11 @@
 {% endblock %}
 
 {% block content %}
-  {% set advice = {
-    "Safe": "No strong warning signs. If the email is unexpected, check with the sender another way before acting on it.",
-    "Suspicious": "Some warning signs. Don't click links or open attachments until you've confirmed it with the sender another way.",
-    "Malicious": "Strong evidence this is a scam. Don't click anything. Report it, then delete it."
-  } %}
-  {% set shield = {"Safe": "shield-check", "Suspicious": "shield-alert", "Malicious": "shield-x"} %}
-  {% set kind = outcome.verdict | lower %}
-
-  {# --score lets the CSS place the marker on the scale #}
-  <section id="result" class="verdict card {{ kind }}" style="--score: {{ outcome.score }}" aria-labelledby="verdict">
-    <div class="verdict-bg" aria-hidden="true"></div>
-
-    <div class="verdict-head">
-      <span class="eyebrow"><span class="dot"></span>Verdict</span>
-      <span class="file-chip"><svg class="icon" aria-hidden="true"><use href="#mail"/></svg>{{ filename }}</span>
-    </div>
-
-    <div class="verdict-main">
-      <span class="verdict-icon"><svg class="icon" aria-hidden="true"><use href="#{{ shield[outcome.verdict] }}"/></svg></span>
-      <h1 id="verdict">{{ outcome.verdict }}</h1>
-      <p class="score"><span class="count" data-count="{{ outcome.score }}">{{ outcome.score }}</span> <small>points</small></p>
-    </div>
-
-    <p class="advice">{{ advice[outcome.verdict] }}</p>
-    <p class="subject"><span>Subject</span>{{ parsed.subject or "(no subject)" }}</p>
-
-    <div class="meter" aria-hidden="true">
-      <div class="meter-track">
-        <span class="seg safe"></span><span class="seg suspicious"></span><span class="seg malicious"></span>
-        <span class="marker"></span>
-      </div>
-      <div class="meter-labels"><span>Safe 0–1</span><span>Suspicious 2–5</span><span>Malicious 6+</span></div>
-    </div>
-  </section>
+  {# Pages split into partials so app.py can re-render them for live updates #}
+  {% include "_verdict.html" %}
 
   <div class="result-grid">
-    <section class="card panel {{ kind }}" aria-labelledby="why">
-      <h2 id="why">Why</h2>
-      {% if outcome.reasons %}
-        <ul class="reasons">
-          {% for reason in outcome.reasons %}
-            <li class="reveal" style="--i: {{ loop.index0 }}">
-              <span class="points">+{{ reason.points }}</span>
-              <span class="reason-text">{{ reason.detail }}</span>
-              {# One pip per point. The strongest finding is worth 6 #}
-              <span class="pips" aria-hidden="true">{% for i in range(6) %}<i{% if i < reason.points %} class="on"{% endif %}></i>{% endfor %}</span>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="none"><svg class="icon" aria-hidden="true"><use href="#shield-check"/></svg> HookLine found no red flags in this email.</p>
-      {% endif %}
-    </section>
+    {% include "_why.html" %}
 
     <section class="card panel" aria-labelledby="evidence">
       <h2 id="evidence">What HookLine found</h2>
@@ -112,25 +64,13 @@
               <span class="badge">{{ vt_results | length }}</span>
               <svg class="icon chevron" aria-hidden="true"><use href="#chevron"/></svg>
             </summary>
-            <ul class="vt">
-              {% for r in vt_results %}
-                <li>
-                  <span class="vt-kind">{{ r.kind }}</span>
-                  <span class="value" data-copy>{{ r.value }}</span>
-                  {% if r.status == "found" and r.malicious >= 5 %}
-                    <span class="badge bad"><i></i>{{ r.malicious }} of {{ r.engines }} malicious</span>
-                  {% elif r.status == "found" and (r.malicious or r.suspicious) %}
-                    <span class="badge warn"><i></i>{{ r.malicious + r.suspicious }} of {{ r.engines }} wary</span>
-                  {% elif r.status == "found" %}
-                    <span class="badge good"><i></i>Clean</span>
-                  {% elif r.status == "not_found" %}
-                    <span class="badge">Not seen before</span>
-                  {% else %}
-                    <span class="badge" title="{{ r.detail }}">Lookup failed</span>
-                  {% endif %}
-                </li>
-              {% endfor %}
+            {# data-stream tells hookline.js where to listen for live results #}
+            <ul class="vt"{% if stream_url %} data-stream="{{ stream_url }}"{% endif %}>
+              {% for r in vt_results %}{% include "_vt_row.html" %}{% endfor %}
             </ul>
+            {% if stream_url %}
+              <noscript><p class="none">Live VirusTotal results need JavaScript turned on.</p></noscript>
+            {% endif %}
           </details>
         {% endif %}
       </div>

@@ -1,0 +1,18 @@
+{# The "Why" panel. Like _verdict.html, it's swapped in again once VirusTotal is done. #}
+<section id="why-panel" class="card panel {{ outcome.verdict | lower }}" aria-labelledby="why">
+  <h2 id="why">Why</h2>
+  {% if outcome.reasons %}
+    <ul class="reasons">
+      {% for reason in outcome.reasons %}
+        <li class="reveal" style="--i: {{ loop.index0 }}">
+          <span class="points">+{{ reason.points }}</span>
+          <span class="reason-text">{{ reason.detail }}</span>
+          {# One pip per point. The strongest finding is worth 6 #}
+          <span class="pips" aria-hidden="true">{% for i in range(6) %}<i{% if i < reason.points %} class="on"{% endif %}></i>{% endfor %}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="none"><svg class="icon" aria-hidden="true"><use href="#shield-check"/></svg> HookLine found no red flags in this email.</p>
+  {% endif %}
+</section>
