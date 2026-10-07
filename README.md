@@ -4,7 +4,7 @@ A phishing email analyser. Give it a suspicious email and HookLine pulls out the
 
 Use it three ways: from the **terminal**, in a **web page** with live progress, or by forwarding emails to a **reporting inbox**.
 
-![HookLine's result page showing a Malicious verdict](docs/screenshot.png)
+<!-- screenshot placeholder: add docs/screenshot.png to show the result page -->
 
 ## How it works
 
@@ -42,7 +42,7 @@ flowchart LR
     D --> OUT["Safe / Suspicious / Malicious<br/>with the reasons"]
 ```
 
-For every module and how they connect, see the [detailed architecture diagram](docs/diagram (1).png).
+For every module and how they connect, see the [detailed architecture diagram](docs/diagram%20(1).png).
 
 ## Red flags HookLine checks for
 
@@ -116,7 +116,7 @@ python make_samples.py
 python main.py samples/real/sample-1020.eml
 ```
 
-`make_samples.py` creates 60 safe, made-up test emails. `main.py` analyses one and shows everything it found. Here it is on a real phishing email pretending to be from Costco:
+`make_samples.py` creates 60 made-up test emails (30 phishing, 30 safe). `main.py` analyses one and shows everything it found. Here it is on a real phishing email pretending to be from Costco:
 
 ```
 VIRUSTOTAL (about 15 seconds per lookup)
@@ -198,6 +198,7 @@ HookLine handles malicious emails, so it's built to be careful with them:
 ```
 hookline/
 ├── analyser/
+│   ├── __init__.py      package marker
 │   ├── parser.py        read the email
 │   ├── observables.py   find links, domains, IPs and email addresses
 │   ├── checks.py        look for red flags
@@ -208,22 +209,29 @@ hookline/
 │   ├── base.html        the parts every page shares
 │   ├── index.html       the home page
 │   ├── result.html      the result page
-│   └── _*.html          pieces re-sent live as VirusTotal results arrive
+│   ├── _icons.svg       shared icon sprites
+│   ├── _upload.html     upload form partial
+│   ├── _verdict.html    verdict banner (re-sent live)
+│   ├── _vt_row.html     single VirusTotal result row (re-sent live)
+│   └── _why.html        reasons list (re-sent live)
 ├── static/
 │   ├── app.css          styling
-│   └── hookline.js      file picker, drag and drop, live updates
+│   ├── hookline.js      file picker, drag and drop, live updates
+│   └── fonts/           Inter font (OFL licence)
 ├── samples/
 │   ├── fake/            60 generated test emails (30 phishing, 30 safe)
 │   └── real/            real phishing samples (not included, see below)
 ├── docs/
-│   ├── screenshot.png   the result page
-│   └── architecture.png detailed architecture diagram
+│   └── diagram (1).png  detailed architecture diagram
 ├── main.py              analyse one email from the terminal
 ├── app.py               the web interface
 ├── inbox.py             analyse emails reported to a mailbox
 ├── batch.py             measure accuracy across every sample
 ├── make_samples.py      generate the fake test emails
 ├── vt_test.py           a single test lookup to check your API key works
+├── run.ps1              PowerShell launcher script
+├── .env.example         example environment variables
+├── .gitignore           files excluded from Git
 ├── requirements.txt     packages to install
 └── LICENSE              MIT licence
 ```
