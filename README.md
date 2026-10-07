@@ -14,7 +14,35 @@ Use it three ways: from the **terminal**, in a **web page** with live progress, 
 4. **Look up**: optionally ask VirusTotal whether the attachments, IPs, domains and links are known to be malicious
 5. **Verdict**: add up the evidence and decide: Safe (0–1 points), Suspicious (2–5) or Malicious (6+, or if 5+ VirusTotal engines agree)
 
-All three ways of using HookLine call the same `analyse()` function in `analyser/pipeline.py`, so they always give the same verdict.
+All three ways of using HookLine call the same `analyse()` function in `analyser/pipeline.py`, so they always give the same verdict:
+
+```mermaid
+flowchart LR
+    subgraph In["Three ways in"]
+        CLI["Terminal<br/>main.py"]
+        WEB["Web page<br/>app.py"]
+        INBOX["Reporting inbox<br/>inbox.py"]
+    end
+
+    subgraph Engine["One shared pipeline: analyse()"]
+        P["Parse<br/>parser.py"] --> O["Extract<br/>observables.py"]
+        O --> C["Check 13 red flags<br/>checks.py"]
+        C --> V["Look up<br/>virustotal.py"]
+        V --> D["Verdict<br/>verdict.py"]
+    end
+
+    CLI --> P
+    WEB --> P
+    INBOX --> P
+
+    V <--> VT[("VirusTotal API")]
+    V <--> CACHE[("vt_cache.json")]
+    INBOX -. OAuth .-> GMAIL[("Gmail")]
+
+    D --> OUT["Safe / Suspicious / Malicious<br/>with the reasons"]
+```
+
+For every module and how they connect, see the [detailed architecture diagram](docs/diagram (1).png).
 
 ## Red flags HookLine checks for
 
@@ -188,14 +216,16 @@ hookline/
 │   ├── fake/            60 generated test emails (30 phishing, 30 safe)
 │   └── real/            real phishing samples (not included, see below)
 ├── docs/
-│   └── screenshot.png
+│   ├── screenshot.png   the result page
+│   └── architecture.png detailed architecture diagram
 ├── main.py              analyse one email from the terminal
 ├── app.py               the web interface
 ├── inbox.py             analyse emails reported to a mailbox
 ├── batch.py             measure accuracy across every sample
 ├── make_samples.py      generate the fake test emails
 ├── vt_test.py           a single test lookup to check your API key works
-└── requirements.txt     packages to install
+├── requirements.txt     packages to install
+└── LICENSE              MIT licence
 ```
 
 ## Testing with real phishing emails
@@ -211,6 +241,10 @@ HookLine is also tested against real phishing samples from [Phishing Pot](https:
 - **Packages**: `flask` (web interface), `requests` (VirusTotal API), `python-dotenv` (reads settings from `.env`), `google-auth-oauthlib` (OAuth sign-in)
 - **Threat intelligence**: VirusTotal public API
 - **Design**: interface inspired by [Watermelon UI](https://ui.watermelon.sh) (MIT)
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
 
 ## Author
 
