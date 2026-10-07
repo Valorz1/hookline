@@ -1,5 +1,6 @@
 import ipaddress # 
 import re 
+import html
 from urllib.parse import urlparse 
 
 # http:// or https:// followed by anything that isn't a space, quote or angle bracket
@@ -24,7 +25,7 @@ def find_urls(text):
     urls = URL_PATTERN.findall(text)
 # This part is important because phishing emails often have punctuation after the URL, e.g. "Click here: https://example.com."
 # The ) matters too: in HTML, links often sit inside CSS like url(https://...)
-    return [url.rstrip(".,;:!?)") for url in urls]
+    return [html.unescape(url).rstrip(".,;:!?)") for url in urls]
 
 
 

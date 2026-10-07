@@ -22,6 +22,9 @@ SECONDS_BETWEEN_REQUESTS = 15
 ALLOWLIST = {"w3.org", "googleapis.com", "gstatic.com", "googleusercontent.com",
              "google.com", "microsoft.com", "apple.com", "amazon.com"}
 
+# Images shown inside the email, not links anyone clicks
+IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".ico")
+
 
 # Answers are saved here so we never look up the same thing twice,
 # even between runs. This file is in .gitignore.
@@ -33,6 +36,7 @@ _last_request = 0.0
 # The web app can run lookups in several threads at once. This lock makes them
 # take turns, so together they still stay under 4 requests a minute.
 _rate_lock = threading.Lock()
+_cache_lock = threading.Lock()
 
 def _load_cache():
     try:  
@@ -45,7 +49,8 @@ def _load_cache():
 _cache =_load_cache()
 
 def _save_cache():
-    CACHE_FILE.write_text(json.dumps(_cache, indent=2))
+    with _cache_lock:
+        CACHE_FILE.write_text(json.dumps(_cache, indent=2))
 
 
 def is_allowlisted(domain):
@@ -126,12 +131,13 @@ def lookup(kind, value):
 
 
 def choose_targets(found, attachments, max_lookups=8):
-    """Pick what to look up, most useful first, skipping allowlisted domains."""
+    """Pick what to look up, most useful first, skipping allowlisted domains and images."""
     targets = [("file", a["sha256"]) for a in attachments]
     targets += [("ip", ip) for ip in found["ips"]]
     targets += [("domain", d) for d in found["domains"] if not is_allowlisted(d)]
     targets += [("url", u) for u in found["urls"]
-                if not is_allowlisted(urlparse(u).hostname)]
+                if not is_allowlisted(urlparse(u).hostname)
+                and not urlparse(u).path.lower().endswith(IMAGE_EXTENSIONS)]
     return targets[:max_lookups]
 
 

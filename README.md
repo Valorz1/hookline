@@ -155,7 +155,7 @@ HookLine handles malicious emails, so it's built to be careful with them:
 - [x] Web interface
 - [x] Fetch reported emails from a mailbox (IMAP)
 - [ ] Live progress updates in the browser
-- [ ] One shared analysis function for the terminal, web page and inbox
+- [x] One shared analysis function for the terminal, web page and inbox
 - [ ] OAuth sign-in for the reporting inbox
 
 ## Project structure
@@ -163,7 +163,7 @@ HookLine handles malicious emails, so it's built to be careful with them:
 ```
 hookline/
 ├── analyser/
-│   ├── parser.py        read the email
+│   ├── parser.py        read the emaild
 │   ├── observables.py   find links, domains, IPs and email addresses
 │   ├── checks.py        look for red flags
 │   ├── virustotal.py    VirusTotal lookups with rate limiting and caching
