@@ -1,5 +1,6 @@
 {# The upload card. Included by the home page and the result page. #}
-<form class="upload card" action="{{ url_for('analyse') }}" method="post" enctype="multipart/form-data">
+<form class="upload card" action="{{ url_for('analyse') }}" method="post" enctype="multipart/form-data"
+      data-checks="{{ check_count }}">
   {% if error %}
     <div class="alert" role="alert">
       <svg class="icon" aria-hidden="true"><use href="#alert"/></svg>

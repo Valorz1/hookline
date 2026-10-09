@@ -1,7 +1,8 @@
-import ipaddress # 
-import re 
 import html
-from urllib.parse import urlparse 
+import re
+from urllib.parse import parse_qs, urlparse
+
+from analyser.domains import is_ip
 
 # http:// or https:// followed by anything that isn't a space, quote or angle bracket
 URL_PATTERN = re.compile(r"https?://[^\s\"'<>]+")
@@ -12,21 +13,41 @@ IP_PATTERN = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 # Something like name@domain.com
 EMAIL_PATTERN = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 
-def is_ip(value):
-    """Return True if value is a real IP address (each part 0-255)."""
-    try:
-        ipaddress.ip_address(value)
-        return True
-    except ValueError:
-        return False
 
 def find_urls(text):
     """Find every link in a piece of text."""
     urls = URL_PATTERN.findall(text)
-# This part is important because phishing emails often have punctuation after the URL, e.g. "Click here: https://example.com."
-# The ) matters too: in HTML, links often sit inside CSS like url(https://...)
-    return [html.unescape(url).rstrip(".,;:!?)") for url in urls]
+    # Phishing emails often have punctuation after the URL, e.g. "Click here: https://example.com."
+    # The ) matters too: in HTML, links often sit inside CSS like url(https://...)
+    return [unwrap_link(html.unescape(url).rstrip(".,;:!?)")) for url in urls]
 
+
+def host_of(url):
+    """The host name in a link, lowercased, or None for a broken link like http://[oops."""
+    try:
+        host = urlparse(url).hostname
+    except ValueError:
+        return None
+    return host.lower() if host else None
+
+
+def unwrap_link(url):
+    """The real destination of a link that's been wrapped by a mail provider.
+
+    Outlook (Safe Links) and Google rewrite links so a click goes through
+    their checker first. The real address is kept inside the link, so take it
+    back out: otherwise every link would look like it goes to outlook.com.
+    """
+    host = host_of(url) or ""
+    parts = urlparse(url)
+    wrapped = (host.endswith("safelinks.protection.outlook.com")
+               or (host in {"www.google.com", "google.com"} and parts.path == "/url"))
+    if wrapped:
+        query = parse_qs(parts.query)
+        for key in ("url", "q"):
+            if query.get(key, [""])[0].startswith(("http://", "https://")):
+                return query[key][0]
+    return url
 
 
 def extract_observables(parsed):
@@ -44,7 +65,7 @@ def extract_observables(parsed):
 
     # Split each link into its host: either a domain or a raw IP address
     for url in urls:
-        host = urlparse(url).hostname
+        host = host_of(url)
         if not host:
             continue
         if is_ip(host):

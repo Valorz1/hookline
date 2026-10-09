@@ -1,3 +1,10 @@
+"""
+check_vt_key.py - one VirusTotal lookup, to check your API key works.
+
+Usage (from the project folder):
+    python -m scripts.check_vt_key
+"""
+
 import os
 
 import requests

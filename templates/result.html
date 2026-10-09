@@ -8,15 +8,42 @@
 
 {% block content %}
   {# Pages split into partials so app.py can re-render them for live updates #}
-  {% include "_verdict.html" %}
+  {% include "partials/verdict.html" %}
 
   <div class="result-grid">
-    {% include "_why.html" %}
+    {% include "partials/why.html" %}
 
     <section class="card panel" aria-labelledby="evidence">
       <h2 id="evidence">What HookLine found</h2>
       {# Links are shown as plain text on purpose, so nobody clicks them by accident #}
       <div class="accordion">
+        <details open>
+          <summary>
+            <span class="tile"><svg class="icon" aria-hidden="true"><use href="#lock"/></svg></span>
+            Sender and authentication
+            <svg class="icon chevron" aria-hidden="true"><use href="#chevron"/></svg>
+          </summary>
+          {# Each check's result, as recorded by the mail server that received the email #}
+          {% set auth = parsed.auth %}
+          {% set dkim = "pass" if "pass" in auth.dkim else (auth.dkim[0] if auth.dkim else none) %}
+          {% set results = [("SPF", auth.spf), ("DKIM", dkim), ("DMARC", auth.dmarc)] %}
+          {% if auth.compauth %}{% set results = results + [("Microsoft", auth.compauth)] %}{% endif %}
+          <div class="sender">
+            <p class="auth-badges">
+              {% for name, value in results %}
+                <span class="badge {{ 'good' if value == 'pass' else 'bad' if value == 'fail' else '' }}"
+                      title="{{ name }} result: {{ value or 'not recorded' }}"><i></i>{{ name }} {{ value or "not recorded" }}</span>
+              {% endfor %}
+            </p>
+            <dl>
+              {% for label, value in [("From", parsed["from"]), ("Reply-To", parsed["reply_to"]),
+                                      ("Return-Path", parsed["return_path"]), ("Date", parsed["date"])] %}
+                <div><dt>{{ label }}</dt><dd>{{ value or "—" }}</dd></div>
+              {% endfor %}
+            </dl>
+          </div>
+        </details>
+
         {% set labels = {"urls": ("Links", "link"), "domains": ("Domains", "globe"),
                          "ips": ("IP addresses", "server"), "emails": ("Email addresses", "at")} %}
         {% for name, items in found.items() %}
@@ -66,7 +93,7 @@
             </summary>
             {# data-stream tells hookline.js where to listen for live results #}
             <ul class="vt"{% if stream_url %} data-stream="{{ stream_url }}"{% endif %}>
-              {% for r in vt_results %}{% include "_vt_row.html" %}{% endfor %}
+              {% for r in vt_results %}{% with index = loop.index0 %}{% include "partials/vt_row.html" %}{% endwith %}{% endfor %}
             </ul>
             {% if stream_url %}
               <noscript><p class="none">Live VirusTotal results need JavaScript turned on.</p></noscript>
@@ -79,6 +106,6 @@
 
   <section class="again" aria-labelledby="again">
     <h2 id="again">Analyse another email</h2>
-    {% include "_upload.html" %}
+    {% include "partials/upload.html" %}
   </section>
 {% endblock %}

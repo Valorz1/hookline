@@ -1,6 +1,9 @@
 """
 make_samples.py - generate fake test emails for HookLine.
 
+Usage (from the project folder):
+    python -m scripts.make_samples
+
 Creates 30 phishing and 30 safe emails in samples/fake/.
 Every company, person and domain here is made up, and the
 "attachments" are harmless text. Nothing in these emails is dangerous or real.
@@ -13,7 +16,7 @@ from email.message import EmailMessage
 from email.utils import format_datetime, make_msgid
 from pathlib import Path
 
-OUT = Path("samples/fake")
+OUT = Path(__file__).resolve().parent.parent / "samples" / "fake"
 COUNT = 30  # emails of each kind
 
 # Seeding makes the "random" choices identical every run, so the samples
@@ -90,8 +93,8 @@ def phish_account_limited(name):
         reply_to=f"help-desk@account-recovery-{random.randint(10, 99)}.net",
         spf="fail", dkim="none",
     )
- 
- 
+
+
 def phish_parcel_fee(name):
     # Red flags: link to a raw IP address, unusual TLD, small payment request
     ip = ".".join(str(random.randint(11, 220)) for _ in range(4))
@@ -105,8 +108,8 @@ def phish_parcel_fee(name):
               f"http://{ip}/pay?parcel={ref}\n\nUnpaid parcels are returned after 48 hours."),
         spf="softfail", dkim="none",
     )
- 
- 
+
+
 def phish_password_expiry(name):
     # Red flags: link text shows one address but actually goes to another.
     # SPF and DKIM PASS here - the attacker owns their domain. Passing
@@ -122,8 +125,8 @@ def phish_password_expiry(name):
               f'<p><a href="{real}">{shown}</a></p><p>IT Helpdesk</p>'),
         spf="pass", dkim="pass",
     )
- 
- 
+
+
 def phish_invoice(name):
     # Red flags: double file extension (.pdf.exe), no SPF/DKIM, unknown sender
     num = random.randint(1000, 9999)
@@ -135,8 +138,8 @@ def phish_invoice(name):
         attachment=(f"Invoice_{num}.pdf.exe", b"HookLine test file - harmless placeholder."),
         spf="none", dkim="none",
     )
- 
- 
+
+
 def phish_prize(name):
     # Red flags: too good to be true, reply to a free webmail address
     return dict(
@@ -148,8 +151,8 @@ def phish_prize(name):
         reply_to=f"claims.office{random.randint(10, 99)}@freemail.example",
         spf="softfail", dkim="none",
     )
- 
- 
+
+
 def phish_ceo_giftcard(name):
     # Red flags: display name of the boss but an outside address, secrecy,
     # urgency, gift cards. No link at all - the "attack" is the reply.
@@ -176,8 +179,8 @@ def safe_newsletter(name):
               f'<p><a href="https://contoso.com/blog/september">Read more</a></p>'
               f'<p><a href="https://contoso.com/unsubscribe">Unsubscribe</a></p>'),
     )
- 
- 
+
+
 def safe_order(name):
     order = random.randint(100000, 999999)
     total = f"{random.randint(10, 150)}.{random.randint(0, 99):02d}"
@@ -187,8 +190,8 @@ def safe_order(name):
         text=(f"Hi {name},\n\nThanks for your order #{order}. Total: £{total}.\n\n"
               f"Track it here: https://fabrikam.com/orders/{order}\n\nFabrikam Store"),
     )
- 
- 
+
+
 def safe_meeting(name):
     day = random.choice(["Monday", "Tuesday", "Wednesday", "Thursday"])
     return dict(
@@ -197,8 +200,8 @@ def safe_meeting(name):
         text=(f"Hi {name},\n\nThanks for joining on {day}. Notes are in the shared "
               f"folder as usual. Next catch-up is same time next week.\n\nPriya"),
     )
- 
- 
+
+
 def safe_password_changed(name):
     # A real security notice. It mentions passwords but has no link and
     # asks for nothing - a good test that HookLine isn't too jumpy.
@@ -209,8 +212,8 @@ def safe_password_changed(name):
               f"If this wasn't you, call the number on the back of your card.\n\n"
               f"Woodgrove Bank"),
     )
- 
- 
+
+
 def safe_flight(name):
     ref = "".join(random.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(6))
     return dict(
@@ -220,8 +223,8 @@ def safe_flight(name):
               f"Manage your booking: https://tailspinair.com/manage/{ref}\n\n"
               f"Tailspin Airlines"),
     )
- 
- 
+
+
 PHISH = [phish_account_limited, phish_parcel_fee, phish_password_expiry,
          phish_invoice, phish_prize, phish_ceo_giftcard]
 SAFE = [safe_newsletter, safe_order, safe_meeting, safe_password_changed, safe_flight]
@@ -230,21 +233,21 @@ SAFE = [safe_newsletter, safe_order, safe_meeting, safe_password_changed, safe_f
 #=====main=====
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
- 
+
     for kind, templates in [("phish", PHISH), ("safe", SAFE)]:
         for i in range(1, COUNT + 1):
             # Cycle through the templates so each type appears evenly
             template = templates[(i - 1) % len(templates)]
             name, to = make_recipient()
             msg = build(to=to, **template(name))
- 
+
             # e.g. phish_07_account_limited.eml
             label = template.__name__.split("_", 1)[1]
             path = OUT / f"{kind}_{i:02d}_{label}.eml"
             path.write_bytes(msg.as_bytes())
- 
+
     print(f"Created {COUNT * 2} emails in {OUT}")
- 
- 
+
+
 if __name__ == "__main__":
     main()

@@ -1,0 +1,25 @@
+{# One VirusTotal lookup. "pending" rows are placeholders until the live result
+   replaces them; data-index says which placeholder a result belongs to. #}
+{% set level = vt_level(r) %}
+<li data-index="{{ index }}"{% if r.status == "pending" %} class="pending"{% endif %}>
+  <span class="vt-kind">{{ r.kind }}</span>
+  <span class="value" data-copy>{{ r.value }}</span>
+  {% if r.status == "pending" %}
+    <span class="badge"><i></i>Checking…</span>
+  {% elif level == "bad" or level == "warn" %}
+    <span class="badge {{ level }}"><i></i>{{ r.malicious }} of {{ r.engines }} malicious</span>
+  {% elif level == "weak" %}
+    <span class="badge warn"><i></i>{{ r.malicious + r.suspicious }} of {{ r.engines }} wary</span>
+  {% elif level == "clean" %}
+    <span class="badge good"><i></i>No detections</span>
+  {% elif r.status == "not_found" %}
+    <span class="badge">Not seen before</span>
+  {% else %}
+    <span class="badge warn">{{ r.reason or "Lookup failed" }}</span>
+    <small class="vt-detail">{{ r.detail }}</small>
+  {% endif %}
+  {% if report_link(r) %}
+    {# Opens VirusTotal's report page, never the link itself #}
+    <a class="vt-report" href="{{ report_link(r) }}" target="_blank" rel="noopener noreferrer">VirusTotal report</a>
+  {% endif %}
+</li>

@@ -15,18 +15,16 @@ import os
 import sys
 from email import policy
 from email.parser import BytesParser
-
-from dotenv import load_dotenv
-
-from analyser.parser import parse_email_bytes
-from analyser.pipeline import analyse
-
 from pathlib import Path
 
+from dotenv import load_dotenv
 from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+
+from analyser.parser import parse_email_bytes
+from analyser.pipeline import analyse
 
 
 load_dotenv()
@@ -36,8 +34,10 @@ IMAP_PASSWORD = os.getenv("IMAP_PASSWORD")
 
 # OAuth: Google's sign-in page gives us a token, so no password is stored
 SCOPES = ["https://mail.google.com/"]
-CREDENTIALS_FILE = Path("credentials.json")  # identifies the HookLine app to Google
-TOKEN_FILE = Path("token.json")              # the saved token; never commit this
+# Both live in data/, which is in .gitignore
+DATA = Path(__file__).resolve().parent / "data"
+CREDENTIALS_FILE = DATA / "credentials.json"  # identifies the HookLine app to Google
+TOKEN_FILE = DATA / "token.json"              # the saved token; never commit this
 
 
 def attached_emails(report):
@@ -100,7 +100,7 @@ def get_access_token():
 
 
 def sign_in(imap):
-    """Sign in with OAuth if credentials.json exists, otherwise the app password."""
+    """Sign in with OAuth if data/credentials.json exists, otherwise the app password."""
     if CREDENTIALS_FILE.exists():
         token = get_access_token()
         # XOAUTH2 is Gmail's format for signing in to IMAP with a token
@@ -121,7 +121,7 @@ def mark_read(numbers):
 
 def main():
     if not IMAP_USER or not (CREDENTIALS_FILE.exists() or IMAP_PASSWORD):
-        print("Add IMAP_USER to .env, plus credentials.json or IMAP_PASSWORD.")
+        print("Add IMAP_USER to .env, plus data/credentials.json or IMAP_PASSWORD.")
         return
 
     try:

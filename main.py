@@ -1,3 +1,11 @@
+"""
+main.py - analyse one email from the terminal.
+
+Usage:
+    python main.py path/to/email.eml           with VirusTotal lookups
+    python main.py path/to/email.eml --no-vt   quick checks only
+"""
+
 import sys
 
 from analyser.parser import read_email
@@ -52,3 +60,5 @@ print(f"VERDICT: {outcome['verdict'].upper()}  ({outcome['score']} points)")
 print("=" * 50)
 for reason in outcome["reasons"][:3]:
     print(f"   - {reason['detail']}")
+for sign in outcome["good_signs"]:
+    print(f"   + {sign}")

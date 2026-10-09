@@ -562,6 +562,7 @@ b { font-weight: 600; }
 .live-note .dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--primary);
                   animation: breathe 1.2s ease-in-out infinite; }
 .live-note.stopped .dot { background: var(--suspicious); animation: none; }
+.live-note.reconnecting .dot { background: var(--suspicious); }
 .subject { display: flex; gap: 0.75rem; align-items: baseline; flex-wrap: wrap; overflow-wrap: anywhere;
            padding-top: 1rem; border-top: 1px solid var(--border); }
 .subject span { font: 600 0.72rem var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
@@ -622,6 +623,24 @@ b { font-weight: 600; }
 .none { display: flex; align-items: center; gap: 0.5rem; color: var(--muted); }
 .none .icon { color: var(--safe-ink); }
 
+/* "What checks out": quieter than the red flags, in the safe colour */
+.good-signs { display: grid; gap: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.good-signs h3 { font-size: 1rem; letter-spacing: -0.02em; }
+.good-signs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.good-signs li { display: flex; gap: 0.6rem; align-items: flex-start; font-size: 0.92rem; line-height: 1.45; overflow-wrap: anywhere; }
+.good-signs .icon { width: 1.1rem; height: 1.1rem; margin-top: 0.1rem; color: var(--safe-ink); }
+.footnote { font-size: 0.8rem; color: var(--muted); }
+
+/* Sender and authentication: the results as badges, then the raw headers */
+.sender { display: grid; gap: 0.75rem; padding: 0 0.85rem 0.85rem; }
+.auth-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.sender dl { margin: 0; display: grid; gap: 0.35rem; }
+.sender dl div { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.75rem; padding: 0.35rem 0.6rem;
+                 border-radius: 0.5rem; background: var(--card-2); }
+.sender dt { font: 600 0.7rem/1.9 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.sender dd { margin: 0; font: 0.82rem/1.5 var(--mono); overflow-wrap: anywhere; min-width: 0; }
+@media (max-width: 30rem) { .sender dl div { grid-template-columns: 1fr; gap: 0; } }
+
 /* ---------- the evidence accordion, Watermelon's "split" style ----------
    Closed items are joined into one stack. An open item pulls away from its
    neighbours and rounds all its corners; the neighbours round off to meet it. */
@@ -670,6 +689,9 @@ details > .none, details > ul { margin: 0; padding: 0 0.85rem 0.85rem; }
 .vt-kind { font: 600 0.65rem var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
            padding: 0.1rem 0.4rem; border: 1px solid var(--border); border-radius: 0.35rem; }
 .vt .value { flex: 1; font: 0.82rem var(--mono); overflow-wrap: anywhere; min-width: 8rem; }
+.vt-detail { flex-basis: 100%; font-size: 0.8rem; color: var(--muted); }
+.vt-report { font-size: 0.78rem; font-weight: 600; color: var(--primary-ink); text-underline-offset: 3px; white-space: nowrap; }
+.vt-report::after { content: " ↗"; }
 
 /* Live VirusTotal: rows wait with a pulsing dot, then pop in as results land */
 .vt li.pending { color: var(--muted); }

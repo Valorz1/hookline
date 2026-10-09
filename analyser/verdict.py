@@ -1,14 +1,27 @@
 from analyser.checks import finding
-from urllib.parse import urlparse
-
+from analyser.observables import host_of
 
 SUSPICIOUS_AT = 2
 MALICIOUS_AT = 6
 
+# How many VirusTotal engines must call something malicious before we believe
+# it on its own. One engine alone is often a false alarm, especially for the
+# tracking domains that ordinary marketing emails are full of.
+VT_CONFIDENT = 5
+VT_SEVERAL = 2
 
 
-
-VT_CONFIDENT = 5 
+def vt_level(result):
+    """How worrying one VirusTotal answer is: "bad", "warn", "weak", "clean" or None (no answer)."""
+    if result.get("status") != "found":
+        return None
+    if result["malicious"] >= VT_CONFIDENT:
+        return "bad"
+    if result["malicious"] >= VT_SEVERAL:
+        return "warn"
+    if result["malicious"] or result["suspicious"]:
+        return "weak"
+    return "clean"
 
 
 def vt_findings(vt_results):
@@ -18,30 +31,44 @@ def vt_findings(vt_results):
     # again for every link that points to it
     counted = set()
     for result in vt_results:
-        if result["status"] != "found":
-            continue  # "never seen" or an error isn't evidence either way
+        level = vt_level(result)
+        if level in (None, "clean"):
+            continue  # "never seen", an error, or nothing found isn't evidence
 
         # For a URL, the "site" is its domain; for anything else it's the value itself
-        site = urlparse(result["value"]).hostname if result["kind"] == "url" else result["value"]
+        site = host_of(result["value"]) if result["kind"] == "url" else result["value"]
         if site in counted:
             continue
+        counted.add(site)
 
         what = f"{result['kind']} {result['value'][:60]}"
-        if result["malicious"] >= VT_CONFIDENT:
+        if level == "bad":
             findings.append(finding("vt_malicious", 6,
                 f"VirusTotal: {result['malicious']} of {result['engines']} engines flag {what}"))
-            counted.add(site)
-        elif result["malicious"] or result["suspicious"]:
-            findings.append(finding("vt_suspicious", 2,
-                f"VirusTotal: a few engines are wary of {what}"))
-            counted.add(site)
+        elif level == "warn":
+            findings.append(finding("vt_suspicious", 3,
+                f"VirusTotal: {result['malicious']} of {result['engines']} engines flag {what}"))
+        else:
+            wary = result["malicious"] + result["suspicious"]
+            findings.append(finding("vt_weak", 1,
+                f"VirusTotal: {wary} engine{'s' if wary > 1 else ''} wary of {what} "
+                f"(on its own, often a false alarm)"))
     return findings
 
-def decide(findings):
+
+def vt_good_signs(vt_results):
+    """A reassuring line when VirusTotal knew everything it was asked and flagged none of it."""
+    answered = [r for r in vt_results if vt_level(r) is not None]
+    if answered and all(vt_level(r) == "clean" for r in answered):
+        return [f"VirusTotal: none of the {len(answered)} things it knew about were flagged"]
+    return []
+
+
+def decide(findings, good_signs=()):
     """Add up the evidence and decide if the email is suspicious or malicious."""
     score = sum(f["points"] for f in findings)
 
-    # many security engines agreeing is strong enough evidence on its own.
+    # Many security engines agreeing is strong enough evidence on its own
     known_bad = any(f["check"] == "vt_malicious" for f in findings)
 
     if known_bad or score >= MALICIOUS_AT:
@@ -51,7 +78,6 @@ def decide(findings):
     else:
         verdict = "Safe"
 
-    # strongest evidence is VirusTotal, then red flags, then allowlist. If nothing is found, it's safe.
+    # Strongest evidence first
     reasons = sorted(findings, key=lambda f: f["points"], reverse=True)
-    return {"verdict": verdict, "score": score, "reasons": reasons}
-    
+    return {"verdict": verdict, "score": score, "reasons": reasons, "good_signs": list(good_signs)}

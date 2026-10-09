@@ -18,14 +18,14 @@
       </h1>
       <p class="lede reveal">
         Drop in an .eml file. HookLine pulls out every link, domain and attachment,
-        runs 13 red-flag checks, can ask VirusTotal, and tells you
+        runs {{ check_count }} red-flag checks, can ask VirusTotal, and tells you
         <b class="t-safe">Safe</b>, <b class="t-suspicious">Suspicious</b> or
         <b class="t-malicious">Malicious</b>, with the reasons.
       </p>
     </div>
 
     <div class="hero-form reveal">
-      {% include "_upload.html" %}
+      {% include "partials/upload.html" %}
     </div>
   </section>
 
@@ -36,7 +36,7 @@
       {% set steps = [
         ("mail", "Parse", "Reads the headers, both body versions and the attachments."),
         ("search", "Extract", "Finds every link, domain, IP address and email address."),
-        ("list", "Check", "Looks for 13 red flags and scores each one."),
+        ("list", "Check", "Looks for " ~ check_count ~ " red flags and scores each one."),
         ("radar", "Look up", "Optionally asks VirusTotal about the evidence."),
         ("gauge", "Verdict", "Adds up the points and explains the result."),
       ] %}
@@ -57,12 +57,15 @@
 
     <div class="bento">
       <article class="card bento-wide reveal">
-        <h3>13 red-flag checks</h3>
+        <h3>{{ check_count }} red-flag checks</h3>
         <p>Each one looks for a single trick phishing emails use, and adds points when it finds it.</p>
-        {% set flags = ["SPF failed", "DKIM failed", "DMARC failed", "Reply-To mismatch", "Brand impersonation",
-                        "Spaced-out sender name", "Raw IP links", "Link text mismatch", "URL shorteners",
-                        "Programs as attachments", "Double extensions", "Empty body + attachment",
-                        "Invisible characters", "Pressure language", "Official name on Gmail"] %}
+        {% set flags = ["SPF failed", "DKIM failed", "DMARC failed", "Microsoft compauth failed",
+                        "Reply-To mismatch", "Brand impersonation", "Look-alike domains", "Punycode domains",
+                        "Fake address in sender name", "Spaced-out sender name", "Raw IP links",
+                        "Link text mismatch", "URL shorteners", "Forms inside the email",
+                        "Programs as attachments", "Double extensions", "Web pages as attachments",
+                        "Macro documents", "Empty body + attachment", "Invisible characters",
+                        "Pressure language", "Official name on Gmail"] %}
         <div class="marquee" aria-hidden="true">
           <div class="marquee-row">
             {% for f in flags %}<span class="flag">{{ f }}</span>{% endfor %}
@@ -92,7 +95,7 @@
       <article class="card reveal">
         <h3>Tested on real phishing</h3>
         <p class="stat">96%</p>
-        <p>43 of 50 real phishing emails caught, without VirusTotal.</p>
+        <p>48 of 50 real phishing emails caught, without VirusTotal.</p>
       </article>
 
       <article class="card reveal">

@@ -1,7 +1,12 @@
+# Python
 .venv/
-.env
 __pycache__/
+.pytest_cache/
+
+# Secrets and private files: API keys, Google sign-in, VirusTotal cache
+.env
+data/
+
+# Email samples that aren't ours to share
 samples/real/
-vt_cache.json
-credentials.json
-token.json
+samples/legit/

@@ -1,14 +1,31 @@
+"""
+measure_accuracy.py - run every sample email through HookLine and count the mistakes.
+
+Usage (from the project folder):
+    python -m scripts.measure_accuracy
+
+Fake safe_ emails and anything in samples/legit/ should come out Safe;
+everything else should be caught as Suspicious or Malicious.
+"""
+
 from collections import Counter
 from pathlib import Path
 
-from analyser.pipeline import analyse
 from analyser.parser import read_email
+from analyser.pipeline import analyse
 
+SAMPLES = Path(__file__).resolve().parent.parent / "samples"
 
 
 def expected(path):
-    """What the right answer is: fake safe_ emails are safe, everything else is phishing."""
-    return "safe" if path.name.startswith("safe_") else "phishing"
+    """What the right answer is.
+
+    Fake safe_ emails and anything in samples/legit/ (your own real, harmless
+    emails) are safe. Everything else is phishing.
+    """
+    if path.name.startswith("safe_") or "legit" in path.parts:
+        return "safe"
+    return "phishing"
 
 
 # Counts how many emails of each kind got each verdict,
@@ -16,22 +33,24 @@ def expected(path):
 results = Counter()
 
 # VirusTotal is left out on purpose: 110 emails would take hours and use up the daily limit
-for path in sorted(Path("samples").rglob("*.eml")):
+for path in sorted(SAMPLES.rglob("*.eml")):
     try:
         parsed = read_email(path)
-        verdict = analyse(parsed)["outcome"]["verdict"]
+        outcome = analyse(parsed)["outcome"]
     except Exception as error:
         # One malformed email shouldn't stop the rest from being checked
         print(f"ERROR   {path.name}: {error}")
         continue
 
+    verdict = outcome["verdict"]
     results[(expected(path), verdict)] += 1
 
-    # Only print the mistakes, so they stand out
+    # Only print the mistakes, so they stand out, with what caused them
+    reasons = "; ".join(r["detail"] for r in outcome["reasons"])
     if expected(path) == "phishing" and verdict == "Safe":
-        print(f"MISSED  {path.name}  (phishing marked Safe)")
+        print(f"MISSED  {path.name}  (phishing marked Safe, {outcome['score']} points) {reasons}")
     if expected(path) == "safe" and verdict != "Safe":
-        print(f"FALSE ALARM  {path.name}  (safe marked {verdict})")
+        print(f"FALSE ALARM  {path.name}  (safe marked {verdict}, {outcome['score']} points) {reasons}")
 
 for kind in ("phishing", "safe"):
     total = sum(count for (exp, _), count in results.items() if exp == kind)

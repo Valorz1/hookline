@@ -74,7 +74,7 @@ document.querySelectorAll(".upload").forEach(function (form) {
     var clock = form.querySelector(".progress-time");
     // VirusTotal results arrive on the result page itself, so the wait here is short
     var steps = ["Reading the email", "Pulling out links and domains",
-                 "Running 13 red-flag checks", "Adding up the score"];
+                 "Running " + form.dataset.checks + " red-flag checks", "Adding up the score"];
 
     form.classList.add("busy");
     form.querySelector("button[type=submit]").disabled = true;
@@ -177,14 +177,30 @@ function htmlToElement(html) {
 
 document.querySelectorAll("[data-stream]").forEach(function (list) {
   var source = new EventSource(list.dataset.stream);
+  var note = document.querySelector(".live-note");
+  var noteText = note ? note.lastChild.textContent : "";
 
-  // Each result replaces the first row still marked "Checking…"
+  function setNote(message, state) {
+    if (!note) return;
+    note.classList.remove("stopped", "reconnecting");
+    if (state) note.classList.add(state);
+    note.lastChild.textContent = message;
+  }
+
+  // Each result replaces its own "Checking…" row. A reconnect can resend a
+  // result that's already shown; replacing the row again is harmless.
   source.addEventListener("lookup", function (event) {
-    var row = htmlToElement(JSON.parse(event.data));
-    var pending = list.querySelector("li.pending");
-    if (pending) pending.replaceWith(row); else list.append(row);
+    var data = JSON.parse(event.data);
+    var row = htmlToElement(data.row);
+    var old = list.querySelector('li[data-index="' + data.index + '"]');
+    if (old) old.replaceWith(row); else list.append(row);
     row.classList.add("arrived");
     addCopyButtons(row);
+  });
+
+  // Connected (or connected again after a drop)
+  source.addEventListener("open", function () {
+    setNote(noteText);
   });
 
   source.addEventListener("done", function (event) {
@@ -200,23 +216,29 @@ document.querySelectorAll("[data-stream]").forEach(function (list) {
     countUp(verdict.querySelector("[data-count]"), oldScore);
   });
 
-  // "failed" is our own event (the analysis crashed); "error" is the browser's
-  // (the connection dropped). Either way, stop and say so.
+  // "failed" is our own event (the analysis stopped); "error" is the browser's
   function giveUp(message) {
     source.close();
-    var note = document.querySelector(".live-note");
-    if (note) {
-      note.classList.add("stopped");
-      note.lastChild.textContent = message;
-    }
+    setNote(message, "stopped");
     list.querySelectorAll("li.pending .badge").forEach(function (badge) {
       badge.textContent = "Not checked";
     });
   }
-  source.addEventListener("failed", function () {
-    giveUp("VirusTotal checks stopped with an error. The verdict uses the quick checks only.");
+  source.addEventListener("failed", function (event) {
+    giveUp("VirusTotal checks stopped: " + JSON.parse(event.data) +
+           " The verdict uses the quick checks only.");
   });
+
+  // The browser fires "error" whenever the connection drops. Usually it then
+  // reconnects by itself (readyState CONNECTING) and the server sends what was
+  // missed, so just say so. It only gives up for good (CLOSED) when the server
+  // refuses, e.g. HookLine was restarted and the job no longer exists.
   source.addEventListener("error", function () {
-    giveUp("Lost the connection to HookLine. Analyse the email again for VirusTotal results.");
+    if (source.readyState === EventSource.CLOSED) {
+      giveUp("These VirusTotal results are no longer available (was HookLine restarted?). " +
+             "Analyse the email again to see them.");
+    } else {
+      setNote("Connection to HookLine lost. Reconnecting…", "reconnecting");
+    }
   });
 });

@@ -1,4 +1,4 @@
-{# The "Why" panel. Like _verdict.html, it's swapped in again once VirusTotal is done. #}
+{# The "Why" panel. Like verdict.html, it's swapped in again once VirusTotal is done. #}
 <section id="why-panel" class="card panel {{ outcome.verdict | lower }}" aria-labelledby="why">
   <h2 id="why">Why</h2>
   {% if outcome.reasons %}
@@ -14,5 +14,18 @@
     </ul>
   {% else %}
     <p class="none"><svg class="icon" aria-hidden="true"><use href="#shield-check"/></svg> HookLine found no red flags in this email.</p>
+  {% endif %}
+
+  {% if outcome.good_signs %}
+    {# Shown for balance; they never take points off #}
+    <div class="good-signs">
+      <h3>What checks out</h3>
+      <ul>
+        {% for sign in outcome.good_signs %}
+          <li><svg class="icon" aria-hidden="true"><use href="#check"/></svg>{{ sign }}</li>
+        {% endfor %}
+      </ul>
+      <p class="footnote">These prove who sent the email, not that they're honest, so they never lower the score.</p>
+    </div>
   {% endif %}
 </section>
