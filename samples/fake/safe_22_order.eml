@@ -2,7 +2,7 @@ From: "Fabrikam Store" <orders@fabrikam.com>
 To: Alex <alex@hookline-test.example>
 Subject: Order #580547 confirmed
 Date: Fri, 18 Sep 2026 07:16:00 +0000
-Message-ID: <179080486729.38724.4892084227534858444@fabrikam.com>
+Message-ID: <179157536130.28488.4892084227534858444@fabrikam.com>
 Authentication-Results:
  mx.hookline-test.example; spf=pass smtp.mailfrom=fabrikam.com; dkim=pass
 Content-Type: text/plain; charset="utf-8"

@@ -2,7 +2,7 @@ From: "Tailspin Rewards" <rewards@tailspin-prizes.win>
 To: Dan <dan@hookline-test.example>
 Subject: Congratulations! You have won 2 free flights
 Date: Tue, 29 Sep 2026 19:55:00 +0000
-Message-ID: <179080486724.38724.6677655823134432407@tailspin-prizes.win>
+Message-ID: <179157536126.28488.6677655823134432407@tailspin-prizes.win>
 Authentication-Results: mx.hookline-test.example; spf=softfail
  smtp.mailfrom=tailspin-prizes.win; dkim=none
 Reply-To: claims.office64@freemail.example

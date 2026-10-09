@@ -10,7 +10,7 @@ Use it three ways: from the **terminal**, in a **web page** with live progress, 
 
 1. **Parse**: read the email and extract the headers, plain text body, HTML body and attachments
 2. **Extract**: find every link, domain, IP address and email address
-3. **Check**: look for 18 kinds of red flag and score each one by how strong the evidence is
+3. **Check**: look for red flags and score each one by how strong the evidence is
 4. **Look up**: optionally ask VirusTotal whether the attachments, IPs, domains and links are known to be malicious
 5. **Verdict**: add up the evidence and decide: Safe (0–1 points), Suspicious (2–5) or Malicious (6+, or if 5+ VirusTotal engines agree). Things that check out, like a passing DMARC result, are listed too, but never take points off: a scammer's own domain can pass them
 
@@ -26,7 +26,7 @@ flowchart LR
 
     subgraph Engine["One shared pipeline: analyse()"]
         P["Parse<br/>parser.py"] --> O["Extract<br/>observables.py"]
-        O --> C["Check 18 red flags<br/>checks.py"]
+        O --> C["Check red flags<br/>checks.py"]
         C --> V["Look up<br/>virustotal.py"]
         V --> D["Verdict<br/>verdict.py"]
     end
@@ -105,11 +105,8 @@ Measured with `python -m scripts.measure_accuracy`, without VirusTotal:
 | 30 fake phishing emails | 30 caught |
 | 50 real phishing emails ([Phishing Pot](https://github.com/rf-peixoto/phishing_pot)) | 48 caught (96%): 40 Malicious, 8 Suspicious |
 | 30 fake safe emails | 30 passed, no false alarms |
-| 9 realistic everyday emails (`tests/emails.py`) | 9 passed, no false alarms |
 
-The fake samples were written alongside the checks, so their results are optimistic, and some of the newer checks were tuned while looking at the real samples, so treat those numbers as a best case too. Of the two real emails missed, one looks like genuine marketing that ended up in the collection, and the other is a loan scam sent from a real, hacked company account that passes DMARC.
-
-The best test of false alarms is your own inbox: download some ordinary emails as `.eml` files into `samples/legit/` (it's in `.gitignore`, so they stay private) and run `python -m scripts.measure_accuracy`. Anything there that isn't Safe is listed as a false alarm, with the reasons.
+Some checks were tuned while studying these 50 real samples, so 96% is a best case. The fake samples were written alongside the checks, so their results are optimistic too. To test for false alarms on your own mail, put normal `.eml` files in `samples/legit/` (ignored by Git) and run the script again.
 
 ## Setup
 
@@ -132,6 +129,8 @@ IMAP_USER=your.reporting.inbox@gmail.com
 ```
 
 The VirusTotal key is under your VirusTotal profile → **API key**. The `IMAP_` lines are only needed for the reporting inbox. `.env` is in `.gitignore`, so it's never uploaded.
+
+To check your VirusTotal key works: `python -m scripts.check_vt_key`
 
 ## Use it from the terminal
 
@@ -194,6 +193,15 @@ While the Google project is in Testing mode, the token expires after 7 days, and
 
 Emails must be forwarded **as an attachment** (in Gmail: ⋮ → **Forward as attachment**). A normal forward throws away the original headers, such as the real sender and the SPF/DKIM/DMARC results, which most of the checks rely on. It's also worth adding a Gmail filter on the reporting inbox so emails with attachments are never sent to Spam.
 
+## Tests
+
+91 automated tests cover the parser, checks, domain logic, verdict, VirusTotal handling and web app:
+
+```
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
 ## Security notes
 
 HookLine handles malicious emails, so it's built to be careful with them:
@@ -229,49 +237,32 @@ HookLine handles malicious emails, so it's built to be careful with them:
 
 ```
 hookline/
-├── app.py               the web interface          python app.py
-├── main.py              analyse one email           python main.py email.eml
-├── inbox.py             check a reporting inbox     python inbox.py
-├── analyser/            the analysis itself, shared by all three
-│   ├── parser.py        read the email and its authentication results
+├── analyser/
+│   ├── parser.py        read the email
 │   ├── observables.py   find links, domains, IPs and email addresses
-│   ├── domains.py       what HookLine knows about domains: webmail, brands, shorteners
+│   ├── domains.py       brand, webmail and shortener lists, domain logic
 │   ├── checks.py        look for red flags
 │   ├── virustotal.py    VirusTotal lookups with rate limiting and caching
+│   ├── jobs.py          background VirusTotal jobs for live progress
 │   ├── verdict.py       combine the evidence into a final verdict
-│   ├── pipeline.py      the one analyse() function everything uses
-│   └── jobs.py          background VirusTotal jobs for the web page
+│   └── pipeline.py      the one analyse() function everything uses
 ├── templates/
-│   ├── base.html        the parts every page shares
-│   ├── index.html       the home page
-│   ├── result.html      the result page
-│   └── partials/        pieces included in pages, some re-sent live
-│       ├── icons.svg    shared icon sprites
-│       ├── upload.html  the upload form
-│       ├── verdict.html the verdict banner
-│       ├── vt_row.html  one VirusTotal result row
-│       └── why.html     the reasons list
-├── static/
-│   ├── app.css          styling
-│   ├── hookline.js      file picker, drag and drop, live updates
-│   └── fonts/           Inter font (OFL licence)
-├── scripts/             tools for development, run as python -m scripts.<name>
-│   ├── measure_accuracy.py  run every sample and count the mistakes
+│   ├── base.html, index.html, result.html
+│   └── partials/        pieces re-sent live as VirusTotal results arrive
+├── static/              styling and live updates
+├── scripts/
 │   ├── make_samples.py      generate the fake test emails
-│   └── check_vt_key.py      one lookup, to check your VirusTotal key works
-├── tests/               automated tests: python -m pytest
-├── samples/
-│   ├── fake/            60 generated test emails (30 phishing, 30 safe)
-│   ├── real/            real phishing samples (not included, see below)
-│   └── legit/           your own harmless emails, for measuring false alarms (not included)
-├── data/                private, never uploaded: vt_cache.json, credentials.json, token.json
-├── docs/
-│   └── architecture.png detailed architecture diagram
-├── run.ps1              PowerShell launcher: installs packages, starts the web page
-├── .env.example         example settings: copy to .env
-├── requirements.txt     packages to install
-├── requirements-dev.txt packages for running the tests
-├── pytest.ini           test settings
+│   ├── measure_accuracy.py  measure accuracy across every sample
+│   └── check_vt_key.py      check your VirusTotal key works
+├── tests/               91 automated tests
+├── samples/             fake/, real/ (not included) and legit/ (private)
+├── docs/                screenshot and architecture diagram
+├── main.py              analyse one email from the terminal
+├── app.py               the web interface
+├── inbox.py             analyse emails reported to a mailbox
+├── requirements.txt     packages to run HookLine
+├── requirements-dev.txt extra packages for testing
+├── .env.example         settings to copy into .env
 └── LICENSE              MIT licence
 ```
 
@@ -280,15 +271,6 @@ hookline/
 HookLine is also tested against real phishing samples from [Phishing Pot](https://github.com/rf-peixoto/phishing_pot). These aren't included in this repository because they contain live malicious links and attachments. To use them, download the collection and copy some `.eml` files into `samples/real/`.
 
 ⚠️ Only open real samples as text or with HookLine. Never double-click them or click their links.
-
-## Running the tests
-
-```
-pip install -r requirements-dev.txt
-python -m pytest
-```
-
-The tests build their own emails in code, so they don't need the real samples, and VirusTotal is replaced by a fake, so they never use your API key.
 
 ## Tech
 

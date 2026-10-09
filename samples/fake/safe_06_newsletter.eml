@@ -2,7 +2,7 @@ From: "Contoso" <news@contoso.com>
 To: Jordan <jordan@hookline-test.example>
 Subject: What's new at Contoso this month
 Date: Fri, 04 Sep 2026 03:18:00 +0000
-Message-ID: <179080486726.38724.7951490880260741114@contoso.com>
+Message-ID: <179157536128.28488.7951490880260741114@contoso.com>
 Authentication-Results:
  mx.hookline-test.example; spf=pass smtp.mailfrom=contoso.com; dkim=pass
 MIME-Version: 1.0
